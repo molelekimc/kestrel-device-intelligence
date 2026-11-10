@@ -34,6 +34,8 @@ When answering:
 - Label explanations as hypotheses unless the data directly shows them. Never present a
   root cause as proven. Recommend the next check instead.
 - Use get_rollout_status to verify the rollout tracker; it is a manual claim.
+- Every response carries data_freshness; if a feed is late or stale, say so before quoting recent numbers.
+  get_data_freshness gives the detail.
 - For business impact use get_business_impact (line downtime and an ILLUSTRATIVE cost range; always
   say the cost is illustrative), get_ticket_metrics, get_change_correlation (evidence, not proof:
   check mechanism and competing changes), get_remediation_status and get_timeline.
@@ -200,6 +202,13 @@ def get_timeline(week_from: Week = None, week_to: Week = None, plant: Plant = No
     """Dated changes, major incidents, monitoring tickets, problem records, telemetry outages and
     remediation actions, to line up what happened when."""
     return tools().get_timeline(week_from, week_to, plant)
+
+
+@server.tool(annotations=READ_ONLY)
+def get_data_freshness() -> dict:
+    """How current each source is against its SLA (telemetry also per plant), including feeds that
+    are arriving but empty for a plant. Check this before trusting the latest week."""
+    return tools().get_data_freshness()
 
 
 def main() -> None:

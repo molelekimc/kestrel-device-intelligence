@@ -25,3 +25,5 @@ include = ["pipeline*", "mcp_server*", "automation*", "evals*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: end-to-end runs of about a minute (run with -m slow; CI runs them)"]
+addopts = "-m 'not slow'"

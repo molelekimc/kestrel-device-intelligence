@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import duckdb
 import pytest
 
-from pipeline import bronze, config, dq, gold, gold_business, silver, silver_business
+from pipeline import bronze, config, dq, freshness, gold, gold_business, silver, silver_business
 
 INTUNE_COLS = ["Device ID", "Device name", "Device category", "Managed by", "Ownership", "Compliance",
                "OS", "OS version", "Last check-in", "Enrollment date", "Serial number", "Manufacturer",
@@ -185,6 +185,7 @@ def mini_db(tmp_path_factory):
     mp.setattr(config, "TELEMETRY_GLOB", str(root / "telemetry" / "*.jsonl.gz"))
     mp.setattr(config, "TRACKER_PATH", str(root / "plant_it" / "Win11_25H2_rollout_tracker.csv"))
     mp.setattr(config, "BUSINESS_SOURCES", write_business(root))
+    mp.setattr(config, "RAW", root)
     con = duckdb.connect(str(root / "mini.duckdb"))
     dq.create_tables(con)
     bronze.build(con)
@@ -192,6 +193,7 @@ def mini_db(tmp_path_factory):
     silver_business.build(con)
     gold.build(con)
     gold_business.build(con)
+    freshness.build(con)
     con.execute("CHECKPOINT")
     # A second copy for read-only tool tests; DuckDB will not open one file
     # read-write and read-only in the same process.

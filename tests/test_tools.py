@@ -12,7 +12,7 @@ from pipeline import config
 pytestmark = pytest.mark.skipif(not config.DB_PATH.exists(), reason="kestrel.duckdb not built")
 
 ENVELOPE = {"metric_definition", "period", "filters", "rows", "suppressed_groups",
-            "suppression_rule", "data_quality", "warnings", "notes"}
+            "suppression_rule", "data_quality", "data_freshness", "warnings", "notes"}
 IDENTIFIER = re.compile(r"(ROS|GQB|DBN)-(OF|EN|SF)-\d{5}|[0-9a-f]{8}-[0-9a-f]{4}-|@kestrel", re.I)
 
 
@@ -89,7 +89,7 @@ def test_mcp_surface_is_read_only_and_reports_reasons():
             return listed, bad, good
 
     listed, bad, good = asyncio.run(run())
-    assert len(listed) == 14
+    assert len(listed) == 15
     assert all(tool.annotations.read_only_hint for tool in listed)
     assert bad.is_error and "Allowed: DBN, GQB, ROS" in bad.content[0].text
     assert not good.is_error and '"rows"' in good.content[0].text
