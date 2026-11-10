@@ -89,7 +89,7 @@ def test_mcp_surface_is_read_only_and_reports_reasons():
             return listed, bad, good
 
     listed, bad, good = asyncio.run(run())
-    assert len(listed) == 9
+    assert len(listed) == 14
     assert all(tool.annotations.read_only_hint for tool in listed)
     assert bad.is_error and "Allowed: DBN, GQB, ROS" in bad.content[0].text
     assert not good.is_error and '"rows"' in good.content[0].text

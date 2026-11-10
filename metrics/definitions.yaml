@@ -125,3 +125,88 @@ thresholds:
   boot_time_p90:   {pct_change: 0.15}
   logon_time_p50:  {pct_change: 0.15}
   coverage:        {abs_change: -0.10}
+
+# ----------------------------------------------------------------------------- business layer (Phase 6)
+business:
+  sla_resolve_minutes: {1: 240, 2: 480, 3: 4320, 4: 7200}   # P1 4 h, P2 8 h, P3 3 days, P4 5 days
+  min_group_events: 10          # ticket and line-stop groups smaller than this are suppressed
+  change_impact:
+    pre_weeks: 2                # ISO weeks before the change week
+    post_weeks: 2               # the change week and the week after
+    strong_rel: 0.50            # relative change in the scoped devices
+    moderate_rel: 0.25
+    specificity: 3.0            # scoped change must exceed the comparison group's by this factor
+    min_scope_devices: 30
+    min_events: 20
+    metric_thresholds:           # coverage is a share near 1, so smaller relative moves matter
+      coverage: {moderate_rel: 0.10, strong_rel: 0.25}
+    coverage_days_before: 14     # coverage is measured on days, so a break and its fix in one week separate
+    coverage_days_after: 7
+    # Metrics a change of each type could plausibly move (analyst knowledge). Only these are
+    # used to summarise a change; every metric is still stored.
+    metrics_by_category:
+      "Intune - App deployment": [app_crash_rate, tickets_per_1k, it_downtime_per_100, coverage]
+      "Intune - Feature update": [bsod_rate, boot_time_p50, app_crash_rate, it_downtime_per_100]
+      "Intune - Update ring": [bsod_rate, app_crash_rate, it_downtime_per_100]
+      "Intune - Driver update": [bsod_rate, it_downtime_per_100]
+      "Network": [coverage, tickets_per_1k]
+      "Defender": [app_crash_rate, tickets_per_1k]
+      default: [app_crash_rate, bsod_rate, tickets_per_1k]
+    keyword_metrics:             # description keyword (lower case) overrides the category list
+      "reliability agent": [coverage]
+      "telemetry": [coverage]
+  remediation:
+    effective_rel: 0.30         # improvement in the intended direction, relative to before
+    no_effect_rel: 0.10         # smaller than this either way: no detectable effect
+
+business_metrics:
+  tickets_opened:
+    label: Incidents opened
+    unit: tickets
+    grain: incident
+    caveats:
+      - Child tickets of a major incident are counted; they are closed together with the parent.
+      - Tickets reflect what people report, not device health; silent failures produce no tickets.
+  tickets_per_1k_devices:
+    label: Incidents per 1,000 Intune-active devices per week
+    unit: tickets per 1,000 devices
+    grain: incident / device-week
+    caveats:
+      - Tickets without a device are attributed to a plant by location and count only in plant or fleet totals.
+  mtta_p50:
+    label: Median time to acknowledge
+    unit: minutes
+    grain: incident
+    caveats: [Calendar time, not business hours.]
+  mttr_p50:
+    label: Median time to resolve
+    unit: hours
+    grain: incident (excluding major-incident children)
+    caveats:
+      - Excludes child tickets (closed with their parent) and tickets with a resolution time before they were opened.
+      - Calendar time, not business hours. Open tickets are not included.
+  sla_breach_rate:
+    label: Share of resolved incidents that missed the resolution SLA
+    unit: share (0-1)
+    grain: incident (excluding major-incident children)
+    caveats: [SLA targets by priority are in business.sla_resolve_minutes.]
+  downtime_minutes:
+    label: Unplanned line stop minutes
+    unit: minutes
+    grain: line stop
+    caveats:
+      - From the MES stop log; duplicates removed and system start/end used rather than typed durations.
+  it_downtime_share:
+    label: Share of line stop minutes with an IT cause
+    unit: share (0-1)
+    grain: line stop
+    caveats:
+      - IT includes OTHER stops whose operator comment names a PC, screen, reboot or MES fault.
+  cost:
+    label: Estimated cost of IT-caused disruption
+    unit: ZAR (low-high range)
+    grain: week x plant x cost type
+    caveats:
+      - Uses illustrative assumptions in metrics/cost_assumptions.yaml, not Kestrel finance figures.
+      - Workforce cost counts office and engineering devices only; shop-floor impact is counted once, as line downtime.
+      - Workforce cost uses telemetry, so devices that stopped reporting are under-counted.

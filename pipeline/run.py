@@ -4,7 +4,7 @@ import time
 
 import duckdb
 
-from pipeline import bronze, config, dq, gold, silver
+from pipeline import bronze, config, dq, gold, gold_business, silver, silver_business
 
 
 def main() -> None:
@@ -13,7 +13,8 @@ def main() -> None:
     tmp.unlink(missing_ok=True)
     con = duckdb.connect(str(tmp))
     dq.create_tables(con)
-    for name, layer in (("bronze", bronze), ("silver", silver), ("gold", gold)):
+    for name, layer in (("bronze", bronze), ("silver", silver), ("silver+", silver_business),
+                        ("gold", gold), ("gold+", gold_business)):
         t0 = time.time()
         layer.build(con)
         print(f"{name:<7} built in {time.time() - t0:5.1f}s")

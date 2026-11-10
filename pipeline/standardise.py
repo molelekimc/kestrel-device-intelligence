@@ -149,3 +149,89 @@ def valid_duration(seconds: float | None) -> bool:
     if seconds is None:
         return False
     return 0 < seconds <= MAX_DURATION_S and seconds not in SENTINEL_DURATIONS
+
+
+# ---------------------------------------------------------------- business sources (Phase 6)
+
+def parse_local_datetime(raw: str | None) -> datetime | None:
+    """Service desk, change and MES exports: SAST local time, day-first where slashed
+    (South African locale; none of these exports use AM/PM)."""
+    if raw is None or not raw.strip():
+        return None
+    s = raw.strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M:%S",
+                "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M"):
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def parse_day(raw: str | None) -> date | None:
+    """Register dates: tracker layouts plus '14 Oct 2026'."""
+    d = parse_tracker_date(raw)
+    if d is not None or raw is None:
+        return d
+    try:
+        return datetime.strptime(raw.strip(), "%d %b %Y").date()
+    except ValueError:
+        return None
+
+
+def std_priority(raw: str | None) -> int | None:
+    if raw is None:
+        return None
+    from pipeline.reference import TICKET_PRIORITY
+    return TICKET_PRIORITY.get(raw.strip().lower())
+
+
+def std_ticket_category(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    from pipeline.reference import TICKET_CATEGORY
+    return TICKET_CATEGORY.get(raw.strip().lower())
+
+
+def std_remediation_status(raw: str | None) -> str | None:
+    if raw is None or not raw.strip():
+        return None
+    from pipeline.reference import REMEDIATION_STATUS
+    return REMEDIATION_STATUS.get(raw.strip().lower())
+
+
+def std_group(raw: str | None) -> str | None:
+    """'grp-mes-users ', 'GRP MES USERS' -> 'GRP-MES-USERS'."""
+    if raw is None or not raw.strip():
+        return None
+    return re.sub(r"[\s_]+", "-", raw.strip().upper())
+
+
+_LINE_RE = re.compile(r"^P0\d-[A-Z]+-L\d{2}$")
+
+
+def std_line_id(mes_plant: str | None, raw: str | None) -> str | None:
+    """'P01-BIW-L01' as is; 'BIW L01' on a P01 row -> 'P01-BIW-L01'."""
+    if raw is None or not raw.strip():
+        return None
+    s = raw.strip().upper()
+    if _LINE_RE.match(s):
+        return s
+    cand = f"{(mes_plant or '').strip().upper()}-{re.sub(r'[\s_]+', '-', s)}"
+    return cand if _LINE_RE.match(cand) else None
+
+
+def downtime_it_type(reason_code: str | None, comment: str | None) -> tuple[str | None, bool]:
+    """(IT type or None, reclassified?) for a line stop. OTHER stops whose comment names a
+    PC, screen, reboot or MES problem are counted as IT; MES words mean the MES client."""
+    from pipeline.reference import DOWNTIME_IT_CODES, IT_COMMENT_WORDS, MES_COMMENT_WORDS
+    code = (reason_code or "").strip().upper()
+    if code in DOWNTIME_IT_CODES:
+        return code, False
+    if code == "OTHER":
+        words = re.findall(r"[a-z]+", (comment or "").lower())
+        hit = lambda keys: any(w.startswith(k) for w in words for k in keys)   # 'rebooted' matches 'reboot'
+        if hit(IT_COMMENT_WORDS):
+            # MES must be the exact word, so 'message' does not count as the MES client.
+            return ("IT-APP" if any(w in MES_COMMENT_WORDS for w in words) else "IT-TERM"), True
+    return None, False

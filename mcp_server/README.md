@@ -16,6 +16,11 @@ aggregate fleet metrics only. Kestrel Assembly Group is a fictional client and a
 | `list_threshold_breaches(week)` | Week-over-week KPI changes beyond the thresholds, with confounding warnings |
 | `get_rollout_status(plant?, wave?)` | Tracker claims reconciled against telemetry, plus the weekly OS release mix |
 | `get_top_events(event_type, …filters, limit?)` | Top crashing apps or blue screen codes, with device counts and a weekly breakdown |
+| `get_business_impact(week_from?, week_to?, plant?)` | MES line-stop minutes, IT share of downtime, and an **illustrative** cost range (ZAR) by type and driver, with the assumptions used |
+| `get_ticket_metrics(week_from?, week_to?, plant?, category?, priority?, group_by?)` | Incidents, incidents per 1,000 devices, time to acknowledge and resolve, reopen and SLA breach rates |
+| `get_change_correlation(week_from?, week_to?, change_id?, metric?, include_no_evidence?)` | Logged changes ranked by evidence that a relevant metric shifted in the devices they targeted, with the mechanism (app version or bug check code) and competing changes. Evidence, not proof |
+| `get_remediation_status(verdict?)` | Remediation register checked against changes and telemetry: implemented or not, and whether the target metric improved |
+| `get_timeline(week_from?, week_to?, plant?)` | Changes, major incidents, monitoring tickets, problems, outages and remediations in date order |
 
 Metrics: `startup_count`, `boot_time_p50`, `boot_time_p90`, `logon_time_p50`,
 `logon_time_p90`, `app_crash_rate`, `bsod_rate`, `coverage`. They are defined in
@@ -23,7 +28,7 @@ Metrics: `startup_count`, `boot_time_p50`, `boot_time_p90`, `logon_time_p50`,
 
 ## Guardrails
 
-- **Aggregates only.** Tools return grouped results. Device-grain Gold tables are aggregated in SQL and never selected out.
+- **Aggregates only.** Tools return grouped results. Device-grain Gold tables are aggregated in SQL and never selected out. Ticket text, callers and owners stay in restricted Silver tables.
 - **Fail-closed identifier check.** Every response is scanned for hostnames, GUIDs, email addresses and known serial numbers before it leaves; a match blocks the response.
 - **Suppression.** Any group with fewer than 10 devices returns `suppressed` with no value and no supporting counts.
 - **Allowlisted inputs.** Every argument is matched against values loaded from the warehouse or the metric definitions, and values reach SQL only as bound parameters. There is no free-form SQL, and the DuckDB connection is opened read-only.
@@ -50,4 +55,4 @@ python -m mcp_server.server     # stdio server (or: .venv/bin/kestrel-mcp)
 
 3. Add the server from [`claude_desktop_config.example.json`](claude_desktop_config.example.json), replacing `/ABSOLUTE/PATH/TO` with the repository's location. Spaces in the path are fine inside JSON strings.
 
-4. Restart Claude Desktop. `kestrel-fleet` appears under the tools icon. All nine tools are marked read-only.
+4. Restart Claude Desktop. `kestrel-fleet` appears under the tools icon. All 14 tools are marked read-only.

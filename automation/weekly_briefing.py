@@ -28,6 +28,9 @@ changed, and use compare_cohorts with like_for_like=true. For anything about the
 rollout, use compare_cohorts with group_by='rollout_cohort' so there is a comparison group. Use
 get_top_events to see whether a crash or blue screen change is concentrated in one app, version
 or bug check code.
+Use get_business_impact for line downtime and the illustrative cost, get_change_correlation and
+get_timeline to see which logged changes line up with a shift, and get_remediation_status for
+what has been done and whether it worked.
 
 Your final message must be only the briefing in Markdown, following this contract exactly:
 

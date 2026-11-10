@@ -33,5 +33,12 @@ def build(con) -> None:
                       delim = chr(31), quote = '', escape = '', header = false,
                       auto_detect = false, filename = true)""")
 
-    for table in ("bronze_intune_devices", "bronze_tracker", "bronze_telemetry_lines"):
+    # Business sources (Phase 6): plain CSV exports with a header row.
+    for table, path in config.BUSINESS_SOURCES.items():
+        con.execute(f"""
+            CREATE OR REPLACE TABLE {table} AS
+            SELECT * EXCLUDE (filename), row_number() OVER () AS _row_no, {_META}
+            FROM read_csv('{path}', header = true, all_varchar = true, filename = true)""")
+
+    for table in ("bronze_intune_devices", "bronze_tracker", "bronze_telemetry_lines", *config.BUSINESS_SOURCES):
         dq.log_count(con, "bronze_load", table, "true", "loaded as-is")

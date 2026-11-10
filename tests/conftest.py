@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import duckdb
 import pytest
 
-from pipeline import bronze, config, dq, gold, silver
+from pipeline import bronze, config, dq, gold, gold_business, silver, silver_business
 
 INTUNE_COLS = ["Device ID", "Device name", "Device category", "Managed by", "Ownership", "Compliance",
                "OS", "OS version", "Last check-in", "Enrollment date", "Serial number", "Manufacturer",
@@ -106,19 +106,92 @@ def write_raw(root):
         csv.writer(f).writerows(tracker)
 
 
+def write_business(root):
+    """Miniature business sources that exercise every business Silver rule."""
+    def w(rel, header, rows, bom=False):
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", newline="", encoding="utf-8-sig" if bom else "utf-8") as f:
+            csv.writer(f).writerows([header, *rows])
+        return str(path)
+
+    paths = {}
+    paths["bronze_itsm_incidents"] = w("itsm/inc.csv", [
+        "number", "opened_at", "first_response_at", "resolved_at", "closed_at", "state", "priority", "category",
+        "short_description", "caller_id", "location", "cmdb_ci", "assignment_group", "parent_incident",
+        "problem_id", "caused_by_change", "close_code", "reopen_count", "sys_updated_on"], [
+        # INC1: reassigned, exported twice; the later row wins. CI written as an FQDN.
+        ["INC1", "2026-09-01 08:00:00", "2026-09-01 08:30:00", "2026-09-01 12:00:00", "", "Resolved", "2 - High",
+         "BSOD", "blue screen on ros-of-00001", "Test Caller", "Rosslyn", "ros-of-00001.kestrel.local",
+         "EUC Engineering", "", "PRB1", "", "Solved (Workaround)", "1", "2026-09-01 12:00:00"],
+        ["INC1", "2026-09-01 08:00:00", "2026-09-01 08:30:00", "", "", "In Progress", "2 - High",
+         "BSOD", "blue screen on ros-of-00001", "Test Caller", "Rosslyn", "ros-of-00001.kestrel.local",
+         "Service Desk L1", "", "", "", "", "0", "2026-09-01 08:30:00"],
+        # INC2: resolved before opened (day-first dates); no CI, plant from location alias.
+        ["INC2", "02/09/2026 09:00:00", "02/09/2026 09:10:00", "01/09/2026 09:00:00", "", "Closed", "P3",
+         "Slow PC", "slow", "Other Person", "PE Plant", "", "Service Desk L1", "", "", "", "Solved (Permanently)",
+         "0", "02/09/2026 09:00:00"],
+        # INC3: P1 major incident, resolved in 8 h (SLA 4 h).
+        ["INC3", "2026-09-02 07:00:00", "2026-09-02 07:05:00", "2026-09-02 15:00:00", "", "Resolved", "P1",
+         "MES", "MES down", "Service Desk (monitoring)", "Rosslyn", "", "MES Support", "", "PRB2", "CHG1",
+         "Solved (Permanently)", "0", "2026-09-02 15:00:00"],
+        # INC4: child of INC3.
+        ["INC4", "2026-09-02 07:30:00", "2026-09-02 07:40:00", "2026-09-02 15:00:00", "", "Resolved", "High",
+         "KestrelMES", "MES crashed on GQB-SF-00002", "Line Lead", "Gqeberha", "GQB-SF-00002", "MES Support",
+         "INC3", "PRB2", "", "Duplicate", "0", "2026-09-02 15:00:00"],
+    ], bom=True)
+    paths["bronze_change_requests"] = w("change/chg.csv", [
+        "number", "type", "category", "short_description", "assignment_target", "risk", "planned_start",
+        "planned_end", "actual_start", "actual_end", "state", "close_code", "problem_id", "requested_by"], [
+        ["CHG1", "Standard", "Intune - App deployment", "Deploy KestrelMES client 4.2.0", "grp-mes-users ", "Low",
+         "2026-09-02 05:00:00", "2026-09-02 09:00:00", "2026-09-02 05:00:00", "2026-09-02 06:00:00", "Closed",
+         "Successful", "", "TM"],
+        ["CHG2", "Normal", "Intune - Configuration profile", "BitLocker change", "GRP OF", "Low",
+         "02/09/2026 08:00", "02/09/2026 12:00", "", "", "Cancelled", "", "", "SN"],
+    ])
+    paths["bronze_group_membership"] = w("intune/groups.csv", ["group_name", "member_name", "member_type"], [
+        ["GRP-MES-USERS", "GQB-SF-00002", "Device"], ["GRP-MES-USERS", "ros-of-00001 ", "Device"],
+        ["GRP-OF", "ROS-OF-00001", "Device"], ["GRP-OF", "ROS-OF-99999", "Device"]])
+    paths["bronze_mes_lines"] = w("mes/lines.csv", ["line_id", "mes_plant", "site_name", "product_family",
+                                                    "standard_units_per_hour", "shift_pattern"],
+                                  [["P02-AXLE-L01", "P02", "PE", "AXLE", "30", "3x8"]])
+    paths["bronze_mes_terminals"] = w("mes/terms.csv", ["line_id", "station", "terminal_name", "line_critical"],
+                                      [["P02-AXLE-L01", "ST-001", "gqb-sf-00002.kestrel.local", "Y"]])
+    paths["bronze_mes_downtime"] = w("mes/stops.csv", [
+        "event_id", "mes_plant", "line", "station", "start_local", "end_local", "duration_min", "reason_code",
+        "shift", "operator_comment"], [
+        ["DT1", "P02", "P02-AXLE-L01", "ST-001", "2026-09-02 08:00", "2026-09-02 08:10", "10", "IT-APP", "A", "MES crashed"],
+        ["DT1D", "P02", "P02-AXLE-L01", "ST-001", "2026-09-02 08:00", "2026-09-02 08:12", "10", "IT-APP", "A", "MES crashed"],
+        ["DT2", "P02", "P02-AXLE-L01", "ST-001", "02/09/2026 10:00", "02/09/2026 10:30", "0.5", "OTHER", "A", "screen froze"],
+        ["DT3", "P02", "P02-AXLE-L01", "", "2026-09-02T11:00:00", "2026-09-02T11:45:00", "45", "MAT", "A", "no parts"],
+        ["DT4", "P02", "AXLE L01", "", "2026-09-03 09:00", "2026-09-03 09:20", "20", "MECH", "A", "robot fault"],
+    ])
+    paths["bronze_remediation"] = w("remediation/reg.csv", [
+        "action_id", "problem_id", "title", "linked_change", "owner", "target", "status", "date_raised",
+        "due_date", "date_actioned", "verified", "expected_benefit", "comments"], [
+        ["RA-900", "PRB9", "Apply BitLocker change", "CHG2", "KP", "Office", "done ", "01/09/2026", "2026-09-05",
+         "05 Sep 2026", "", "", ""],
+        ["RA-901", "PRB2", "Investigate MES", "", "SN", "MES", "In Progress", "2026-09-02", "2026-09-10", "", "", "", ""],
+    ])
+    return paths
+
+
 @pytest.fixture(scope="session")
 def mini_db(tmp_path_factory):
     root = tmp_path_factory.mktemp("raw")
     write_raw(root)
     mp = pytest.MonkeyPatch()
-    mp.setattr(config, "INTUNE_GLOB", str(root / "intune" / "*.csv"))
+    mp.setattr(config, "INTUNE_GLOB", str(root / "intune" / "kestrel_intune_devices_*.csv"))
     mp.setattr(config, "TELEMETRY_GLOB", str(root / "telemetry" / "*.jsonl.gz"))
     mp.setattr(config, "TRACKER_PATH", str(root / "plant_it" / "Win11_25H2_rollout_tracker.csv"))
+    mp.setattr(config, "BUSINESS_SOURCES", write_business(root))
     con = duckdb.connect(str(root / "mini.duckdb"))
     dq.create_tables(con)
     bronze.build(con)
     silver.build(con)
+    silver_business.build(con)
     gold.build(con)
+    gold_business.build(con)
     con.execute("CHECKPOINT")
     # A second copy for read-only tool tests; DuckDB will not open one file
     # read-write and read-only in the same process.

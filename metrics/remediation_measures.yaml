@@ -1,0 +1,23 @@
+# How each remediation's effect is measured. Maintained by the analytics team with problem
+# management (the register itself has free-text targets). Group names refer to the Intune
+# group membership export.
+#
+#   scope_group            devices the action was meant to change
+#   metric                 a metric from definitions.yaml (app_crash_rate, bsod_rate, coverage, ...)
+#   app                    restrict app_crash_rate to one application
+#   expected               decrease | increase
+#   implementation_check   optional evidence the action actually happened:
+#     no_target_release_after   no device in scope first appears on Win11 25H2 after the action date
+#     app_version_observed      telemetry shows `version` of `app` in scope after the action date
+#   measure: none          the action is a process change with no device metric
+
+RA-001: {scope_group: GRP-HPMINI-EXCL, metric: bsod_rate, expected: decrease,
+         implementation_check: no_target_release_after}
+RA-002: {scope_group: GRP-HPMINI-PILOT-GQB-L03, metric: bsod_rate, expected: decrease}
+RA-003: {scope_group: GRP-MES-USERS, metric: app_crash_rate, app: KestrelMES.exe, expected: decrease,
+         implementation_check: app_version_observed, version: 4.2.1}
+RA-004: {measure: none, reason: CAB process change}
+RA-005: {scope_group: SITE-DBN, metric: coverage, expected: increase}
+RA-006: {measure: none, reason: monitoring capability}
+RA-007: {scope_group: GRP-ALL-SF, metric: coverage, expected: increase}
+RA-008: {scope_group: GRP-OF, metric: app_crash_rate, app: ms-teams.exe, expected: decrease}

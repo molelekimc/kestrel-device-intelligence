@@ -60,3 +60,18 @@ def test_fleet_kpis_present_every_week(db):
     assert one(db, """SELECT count(*) FROM gold_kpi_weekly
                       WHERE plant_code = 'ALL' AND device_class = 'ALL' AND model = 'ALL'
                         AND os_release = 'ALL'""") == 8
+
+
+def test_business_accounting(db):
+    for source, bronze, silver in (("itsm", "bronze_itsm_incidents", "silver_ticket"),
+                                   ("mes", "bronze_mes_downtime", "silver_downtime")):
+        b = one(db, f"SELECT count(*) FROM {bronze}")
+        s = one(db, f"SELECT count(*) FROM {silver}")
+        q = one(db, f"SELECT count(*) FROM quarantine WHERE source = '{source}' AND NOT retained")
+        assert b == s + q, source
+
+
+def test_ticket_text_only_in_restricted_table(db):
+    for table in ("silver_ticket", "gold_ticket_fact", "gold_ticket_weekly", "gold_timeline"):
+        cols = {r[0] for r in db.execute(f"DESCRIBE {table}").fetchall()}
+        assert not cols & {"caller_id", "short_description", "owner", "requested_by"}, table

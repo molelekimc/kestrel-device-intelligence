@@ -180,6 +180,10 @@ class FleetTools:
             compare_group_by=["none", *DIMENSIONS, "rollout_cohort"],
             event_types=["app_crash", "bugcheck"],
             rollout_statuses=RECONCILIATION_MEANING,
+            ticket_categories=self.v.categories,
+            ticket_priorities=["1 (Critical)", "2 (High)", "3 (Moderate)", "4 (Low)"],
+            change_ids=self.v.change_ids,
+            remediation_verdicts=self.v.verdicts,
         )
 
     @audited
@@ -479,3 +483,175 @@ class FleetTools:
                               slice_total=base, warnings=self._warnings(a, b, f),
                               notes=[f"Top {n} by event count. A spike concentrated in one item and week points "
                                      "to that item; it is still a hypothesis until checked with the owning team."])
+
+    # ================================================================== business layer (Phase 6)
+
+    def _bdef(self, *names) -> dict:
+        b = self.defs["business_metrics"]
+        return {n: {"label": b[n]["label"], "unit": b[n]["unit"], "grain": b[n]["grain"],
+                    "caveats": b[n].get("caveats", [])} for n in names}
+
+    def _min_events(self) -> int:
+        return int(self.defs["business"]["min_group_events"])
+
+    def _suppress_counts(self, rows: list[dict], count_col: str, keep: tuple) -> tuple[list[dict], int]:
+        out, sup = [], 0
+        for r in rows:
+            r = {k: (str(v) if hasattr(v, "isoformat") else _r(v)) for k, v in r.items()}
+            if (r.get(count_col) or 0) < self._min_events():
+                r = {k: r[k] for k in keep if k in r} | {"suppressed": True, count_col: f"<{self._min_events()}"}
+                sup += 1
+            out.append(r)
+        return out, sup
+
+    def _cost_assumptions_summary(self) -> dict:
+        from pipeline.gold_business import cost_assumptions
+        a = cost_assumptions()
+        return {"illustrative": a.get("illustrative", True), "currency": a["currency"],
+                "margin_per_line_minute": a["production"]["margin_per_line_minute"],
+                "output_recovered_by_overtime": a["production"]["output_recovered"],
+                "loaded_hourly_rate": a["workforce"]["loaded_hourly_rate"],
+                "minutes_lost_per_app_crash": a["workforce"]["minutes_lost_per_app_crash"],
+                "minutes_lost_per_blue_screen": a["workforce"]["minutes_lost_per_blue_screen"],
+                "cost_per_ticket_by_priority": a["support"]["cost_per_ticket"],
+                "source": "metrics/cost_assumptions.yaml (illustrative, to be replaced by finance)"}
+
+    @audited
+    def get_business_impact(self, week_from: str | None = None, week_to: str | None = None,
+                            plant: str | None = None) -> dict:
+        from pipeline.business_metrics import cost_sql, downtime_sql
+        a, b = self.v.week_range(week_from, week_to)
+        p = self.v.plant(plant)
+        f = {"plant_code": p} if p else {}
+        dims = ["iso_week"] if p else ["iso_week", "plant_code"]
+        sql, params = downtime_sql(dims, f, a, b)
+        weekly, s1 = self._suppress_counts(self._q(sql + f" ORDER BY {', '.join(dims)}", params), "stops",
+                                           ("iso_week", "plant_code"))
+        sql, params = downtime_sql([], f, a, b)
+        total = self._q(sql, params)[0]
+        sql, params = cost_sql(["cost_type", "driver"], f, a, b)
+        cost_rows = self._q(sql + " ORDER BY cost_high_zar DESC", params)
+        sql, params = cost_sql(["iso_week", "cost_type"], f, a, b)
+        cost_weekly = self._q(sql + " ORDER BY iso_week, cost_type", params)
+        sql, params = cost_sql([], f, a, b)
+        cost_total = self._q(sql, params)[0]
+        weekly = [r | {"plant": r.pop("plant_code")} if "plant_code" in r else r for r in weekly]
+        return self._envelope(
+            period=self._period(a, b), filters=f, rows=weekly, suppressed=s1,
+            downtime_total={k: _r(v) for k, v in total.items()},
+            cost_total_zar={"low": _r(cost_total["cost_low_zar"]), "high": _r(cost_total["cost_high_zar"])},
+            cost_by_driver=[{k: _r(v) for k, v in r.items()} for r in cost_rows],
+            cost_by_week=[{k: _r(v) for k, v in r.items()} for r in cost_weekly],
+            cost_assumptions=self._cost_assumptions_summary(),
+            definitions=self._bdef("downtime_minutes", "it_downtime_share", "cost"),
+            warnings=self._warnings(a, b, f),
+            notes=["Costs are ILLUSTRATIVE ranges from metrics/cost_assumptions.yaml, not Kestrel finance figures.",
+                   "Line downtime comes from the MES stop log and is unaffected by telemetry gaps; workforce cost "
+                   "uses telemetry, so it under-counts devices that stopped reporting."])
+
+    @audited
+    def get_ticket_metrics(self, week_from: str | None = None, week_to: str | None = None,
+                           plant: str | None = None, category: str | None = None, priority=None,
+                           group_by: str | None = None) -> dict:
+        from pipeline.business_metrics import ticket_sql
+        a, b = self.v.week_range(week_from, week_to)
+        f = {k: v for k, v in (("plant_code", self.v.plant(plant)),
+                               ("category", self.v.choice(category, self.v.categories, "category")),
+                               ("priority", self.v.priority(priority))) if v is not None}
+        gb = self.v.choice(group_by, ["week", "plant", "category", "priority", "device_class"], "group_by", "week")
+        col = {"week": "iso_week", "plant": "plant_code"}.get(gb, gb)
+        sql, params = ticket_sql([col], f, a, b)
+        rows, sup = self._suppress_counts(self._q(sql + f" ORDER BY {col}", params), "tickets", (col,))
+        sql, params = ticket_sql([], f, a, b)
+        total, s2 = self._suppress_counts(self._q(sql, params), "tickets", ())
+        rows = [{_public(k): v for k, v in r.items()} for r in rows]
+        return self._envelope(
+            period=self._period(a, b), filters=f, rows=rows, suppressed=sup + s2, period_total=total,
+            group_by=gb, definitions=self._bdef("tickets_opened", "tickets_per_1k_devices", "mtta_p50",
+                                                "mttr_p50", "sla_breach_rate"),
+            sla_resolve_minutes=self.defs["business"]["sla_resolve_minutes"],
+            warnings=self._warnings(a, b, {k: v for k, v in f.items() if k == "plant_code"}),
+            notes=["Tickets show what people reported, not device health: silent failures (for example devices "
+                   "that stopped sending telemetry) raise no tickets.",
+                   "MTTR, reopen and SLA figures exclude child tickets of a major incident, which close with the parent."])
+
+    @audited
+    def get_change_correlation(self, week_from: str | None = None, week_to: str | None = None,
+                               change_id: str | None = None, metric: str | None = None,
+                               include_no_evidence: bool = False) -> dict:
+        a, b = self.v.week_range(week_from, week_to)
+        cid = self.v.choice(change_id, self.v.change_ids, "change_id")
+        metrics = ["app_crash_rate", "bsod_rate", "boot_time_p50", "coverage", "tickets_per_1k", "it_downtime_per_100"]
+        m = self.v.choice(metric, metrics, "metric")
+        if not isinstance(include_no_evidence, bool):
+            raise ToolInputError("include_no_evidence must be true or false.")
+        detail = cid is not None or m is not None
+        where, params = ["change_week BETWEEN ? AND ?"], [a, b]
+        if cid:
+            where.append("change_id = ?"); params.append(cid)
+        if m:
+            where.append("metric = ?"); params.append(m)
+        if not include_no_evidence:
+            where.append("evidence IN ('strong', 'moderate', 'weak')")
+        table = "gold_change_impact" if detail else "gold_change_summary"
+        order = "CASE evidence WHEN 'strong' THEN 0 WHEN 'moderate' THEN 1 WHEN 'weak' THEN 2 ELSE 3 END, actual_start"
+        rows = self._q(f"SELECT * FROM {table} WHERE {' AND '.join(where)} ORDER BY {order}", params)
+        out, sup = [], 0
+        for r in rows:
+            r = {k: (str(v) if hasattr(v, "isoformat") else _r(v)) for k, v in r.items()}
+            if (r.get("scope_devices") or 0) < self.min_devices:
+                r = {k: r[k] for k in ("change_id", "description", "actual_start")} | {"suppressed": True}
+                sup += 1
+            out.append(r)
+        return self._envelope(
+            period=self._period(a, b), filters={"change_id": cid, "metric": m} if detail else {}, rows=out,
+            suppressed=sup, evidence_rules=self.defs["business"]["change_impact"],
+            warnings=self._warnings(a, b, {}),
+            notes=["Evidence is correlation, not proof. 'strong' = a large shift in a metric this kind of change "
+                   "could move, specific to the devices the change targeted (vs devices it did not), in the weeks "
+                   "starting with the change.",
+                   "'mechanism' names the app version or bug check code that carries the shift; 'mechanism_change' "
+                   "lists the change(s) that deployed it. 'competing_changes' lists other changes with a same-direction "
+                   "shift in the same window: rule them out before attributing.",
+                   "Coverage is measured on days (before vs after the change, until a rollout finishes); other metrics "
+                   "on ISO weeks (two before vs the change week and the next).",
+                   "Without a comparison group (the change targets almost every device), evidence is at most 'weak'."])
+
+    @audited
+    def get_remediation_status(self, verdict: str | None = None) -> dict:
+        v = self.v.choice(verdict, self.v.verdicts, "verdict")
+        rows = self._q("""SELECT action_id, problem_id, title, change_id, status, actioned_on, verified, metric, app,
+                                 scope_group, expected, before_weeks, after_weeks, before, after, rel_change,
+                                 comparison_before, comparison_after, rel_change_comparison, implementation_evidence,
+                                 verdict, explanation
+                          FROM gold_remediation_effect WHERE ? IS NULL OR verdict = ? ORDER BY action_id""", [v, v])
+        rows = [{k: (str(x) if hasattr(x, "isoformat") else _r(x)) for k, x in r.items()} for r in rows]
+        a, b = self.v.weeks[0], self.v.weeks[-1]
+        return self._envelope(
+            period=self._period(a, b), filters={"verdict": v} if v else {}, rows=rows,
+            verdict_meanings={
+                "effective": "The intended metric improved after the action, beyond any comparison group.",
+                "no_detectable_effect": "The intended metric did not change meaningfully.",
+                "claimed_not_implemented": "Marked done, but the linked change or telemetry shows it did not take effect.",
+                "not_yet_measurable": "Not actioned (or too recent) within the data window.",
+                "not_measurable_process": "A process change with no device metric.",
+                "open": "Still open or in progress.",
+                "inconclusive": "A small change, or one matched by the comparison group.",
+                "worse": "The metric moved the wrong way after the action."},
+            rules=self.defs["business"]["remediation"],
+            notes=["The remediation register is a manual claim; verdicts compare it with changes and telemetry.",
+                   "Before = the week before the action took effect; after = the effect week and the next."])
+
+    @audited
+    def get_timeline(self, week_from: str | None = None, week_to: str | None = None, plant: str | None = None) -> dict:
+        a, b = self.v.week_range(week_from, week_to)
+        p = self.v.plant(plant)
+        rows = self._q("""SELECT event_at, iso_week, kind, ref, title, plant_code, detail FROM gold_timeline
+                          WHERE iso_week BETWEEN ? AND ? AND (? IS NULL OR plant_code IN (?, 'ALL'))
+                          ORDER BY event_at""", [a, b, p, p])
+        rows = [{_public(k): (str(v) if hasattr(v, "isoformat") else v) for k, v in r.items()} for r in rows]
+        return self._envelope(
+            period=self._period(a, b), filters={"plant_code": p} if p else {}, rows=rows,
+            warnings=self._warnings(a, b, {"plant_code": p} if p else {}),
+            notes=["Changes, major incidents, monitoring tickets, problem records, telemetry outages and remediation "
+                   "actions in date order. Ticket text and people are never shown."])

@@ -80,3 +80,36 @@ EVENT_TYPES = {
     "app_crash": "app_crash", "AppCrash": "app_crash",
     "bugcheck": "bugcheck", "BugCheck": "bugcheck",
 }
+
+# ---------------------------------------------------------------- business sources (Phase 6)
+
+PLANT_ALIASES.update({"kag rosslyn plant": "ROS", "kag rosslyn": "ROS", "gqeberha / pe": "GQB",
+                      "durban - prospecton": "DBN"})
+
+MES_PLANTS = {"P01": "ROS", "P02": "GQB", "P03": "DBN"}
+
+TICKET_PRIORITY = {"1 - critical": 1, "p1": 1, "critical": 1,
+                   "2 - high": 2, "p2": 2, "high": 2,
+                   "3 - moderate": 3, "p3": 3, "moderate": 3, "medium": 3,
+                   "4 - low": 4, "p4": 4, "low": 4}
+
+TICKET_CATEGORY = {
+    "hardware": "Hardware", "hw": "Hardware",
+    "hardware - display": "Display / blue screen", "blue screen": "Display / blue screen", "bsod": "Display / blue screen",
+    "software - mes": "MES", "mes": "MES", "kestrelmes": "MES",
+    "software - office": "Office apps", "office": "Office apps", "teams": "Office apps",
+    "performance": "Performance", "slow pc": "Performance",
+    "network": "Network", "network/wi-fi": "Network",
+    "access": "Access", "password / account": "Access",
+    "printing": "Printing", "printer": "Printing",
+    "monitoring": "Monitoring", "platform - telemetry": "Monitoring",
+}
+
+REMEDIATION_STATUS = {"done": "Done", "completed": "Done", "complete": "Done", "closed": "Done",
+                      "in progress": "In progress", "wip": "In progress", "open": "Open",
+                      "not started": "Open", "scheduled": "Scheduled", "cancelled": "Cancelled"}
+
+DOWNTIME_IT_CODES = {"IT-APP", "IT-TERM", "IT-NET"}
+# Operator comments on OTHER stops that point to an IT cause; MES words mean the MES client.
+IT_COMMENT_WORDS = ("screen", "pc", "terminal", "reboot", "restart", "froze", "crash", "mes")
+MES_COMMENT_WORDS = ("mes",)

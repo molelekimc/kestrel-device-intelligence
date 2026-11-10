@@ -47,6 +47,13 @@ class Validator:
         self.releases = [r[0] for r in con.execute(
             "SELECT DISTINCT os_release FROM gold_device_week ORDER BY 1").fetchall()]
         self.metrics = list(definitions()["metrics"])
+        # Business layer (Phase 6)
+        self.categories = [r[0] for r in con.execute(
+            "SELECT DISTINCT category FROM gold_ticket_fact ORDER BY 1").fetchall()]
+        self.change_ids = [r[0] for r in con.execute(
+            "SELECT change_id FROM silver_change ORDER BY 1").fetchall()]
+        self.verdicts = [r[0] for r in con.execute(
+            "SELECT DISTINCT verdict FROM gold_remediation_effect ORDER BY 1").fetchall()]
 
     # ------------------------------------------------------------- single values
     def metric(self, value: str) -> str:
@@ -142,6 +149,16 @@ class Validator:
             raise ToolInputError(f"limit must be an integer from 1 to {maximum}.")
         return value
 
+    def priority(self, value) -> int | None:
+        if value is None:
+            return None
+        from pipeline.standardise import std_priority
+        text = str(value).strip()
+        p = int(text) if text in ("1", "2", "3", "4") else std_priority(text)
+        if p is None:
+            raise ToolInputError(f"Unknown priority {value!r}. Allowed: 1-4, P1-P4, Critical, High, Moderate, Low")
+        return p
+
     def filters(self, plant=None, device_class=None, model=None, os_build=None) -> dict[str, str]:
         f = {"plant_code": self.plant(plant), "device_class": self.device_class(device_class),
              "model": self.model(model), "os_release": self.os_release(os_build)}
@@ -164,6 +181,10 @@ class OutboundCheck:
     numbers have no fixed shape, so they are matched exactly against inventory."""
 
     def __init__(self, con):
+        # Ticket callers and anyone named in ticket text (restricted Silver table).
+        self.people = {r[0].strip() for r in con.execute(
+            "SELECT DISTINCT caller_id FROM silver_ticket_text WHERE caller_id NOT LIKE 'Service Desk%'").fetchall()
+                       if r[0] and r[0].strip()}
         self.serials = {r[0] for r in con.execute(
             "SELECT DISTINCT serial FROM silver_intune_enrollment WHERE serial IS NOT NULL").fetchall()}
 
@@ -172,6 +193,8 @@ class OutboundCheck:
             for name, rx in (("device id", _GUID), ("hostname", _HOST), ("user principal name", _EMAIL)):
                 if rx.search(text):
                     raise IdentifierLeak(f"Response blocked: it contained a {name}.")
+            if any(name in text for name in self.people):
+                raise IdentifierLeak("Response blocked: it contained a person's name.")
             for token in re.findall(r"[A-Z0-9]{6,12}", text):
                 if token in self.serials:
                     raise IdentifierLeak("Response blocked: it contained a serial number.")

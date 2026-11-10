@@ -14,7 +14,9 @@ Sun 11 Oct 2026"). Only report changes you retrieved with a tool.
 
 ## 2. Supporting evidence
 The KPI and cohort numbers behind each change, with the devices reporting behind every
-number. Say whether the comparison is like-for-like (same devices in both periods). For any
+number. Say whether the comparison is like-for-like (same devices in both periods). Where
+available, add the production and service impact (line stop minutes, IT share of downtime,
+incidents) and the cost range, stating that the cost is illustrative. For any
 claim about the Win11 25H2 rollout, include a comparison group (a cohort that did not
 upgrade over the same weeks).
 
@@ -25,7 +27,8 @@ for the slices reported."
 
 ## 4. Hypotheses
 Possible explanations, each as a bullet starting with "Hypothesis:". A hypothesis is never
-stated as proven, and the data does not establish root cause.
+stated as proven, and the data does not establish root cause. A logged change with strong
+evidence is still a hypothesis; name the change and its evidence label.
 
 ## 5. Recommended next checks
 Bullets, each starting with a verb such as Check, Confirm, Compare, Verify, Review, Ask or

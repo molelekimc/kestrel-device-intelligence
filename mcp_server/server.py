@@ -34,6 +34,9 @@ When answering:
 - Label explanations as hypotheses unless the data directly shows them. Never present a
   root cause as proven. Recommend the next check instead.
 - Use get_rollout_status to verify the rollout tracker; it is a manual claim.
+- For business impact use get_business_impact (line downtime and an ILLUSTRATIVE cost range; always
+  say the cost is illustrative), get_ticket_metrics, get_change_correlation (evidence, not proof:
+  check mechanism and competing changes), get_remediation_status and get_timeline.
 """
 
 server = MCPServer("kestrel-fleet", instructions=INSTRUCTIONS, version="0.1.0")
@@ -150,6 +153,53 @@ def get_top_events(event_type: Literal["app_crash", "bugcheck"], week_from: Week
     """Top crashing applications (name and version) or blue screen bug check codes for a slice,
     with event and device counts and a per-week breakdown."""
     return tools().get_top_events(event_type, week_from, week_to, plant, device_class, model, os_build, limit)
+
+
+# ------------------------------------------------------------------ business layer (Phase 6)
+
+@server.tool(annotations=READ_ONLY)
+def get_business_impact(week_from: Week = None, week_to: Week = None, plant: Plant = None) -> dict:
+    """Production and cost impact: MES line stop minutes and the share with an IT cause, plus an
+    ILLUSTRATIVE cost range (ZAR) by cost type and driver, with the assumptions used."""
+    return tools().get_business_impact(week_from, week_to, plant)
+
+
+@server.tool(annotations=READ_ONLY)
+def get_ticket_metrics(week_from: Week = None, week_to: Week = None, plant: Plant = None,
+                       category: Annotated[str | None, Field(description="e.g. MES, Display / blue screen, Performance. See list_allowed_values.")] = None,
+                       priority: Annotated[str | None, Field(description="1-4, P1-P4, Critical, High, Moderate or Low.")] = None,
+                       group_by: Annotated[Literal["week", "plant", "category", "priority", "device_class"] | None,
+                                           Field(description="Default 'week'.")] = None) -> dict:
+    """Service desk incidents: volumes, incidents per 1,000 devices, time to acknowledge and resolve,
+    reopen and SLA breach rates. Tickets reflect what people report, not device health."""
+    return tools().get_ticket_metrics(week_from, week_to, plant, category, priority, group_by)
+
+
+@server.tool(annotations=READ_ONLY)
+def get_change_correlation(week_from: Week = None, week_to: Week = None,
+                           change_id: Annotated[str | None, Field(description="e.g. CHG0041031 for full per-metric detail.")] = None,
+                           metric: Annotated[Literal["app_crash_rate", "bsod_rate", "boot_time_p50", "coverage",
+                                                     "tickets_per_1k", "it_downtime_per_100"] | None,
+                                             Field(description="Show every change's evidence on one metric.")] = None,
+                           include_no_evidence: bool = False) -> dict:
+    """Logged changes ranked by how strongly a metric shifted in the devices they targeted versus
+    devices they did not, with the app version or bug check code carrying the shift and any
+    competing changes. Evidence, not proof."""
+    return tools().get_change_correlation(week_from, week_to, change_id, metric, include_no_evidence)
+
+
+@server.tool(annotations=READ_ONLY)
+def get_remediation_status(verdict: Annotated[str | None, Field(description="effective, no_detectable_effect, claimed_not_implemented, not_yet_measurable, open ...")] = None) -> dict:
+    """Remediation actions from the problem register, checked against changes and telemetry: was
+    each one implemented, and did the metric it targeted improve (before vs after, vs a comparison group)?"""
+    return tools().get_remediation_status(verdict)
+
+
+@server.tool(annotations=READ_ONLY)
+def get_timeline(week_from: Week = None, week_to: Week = None, plant: Plant = None) -> dict:
+    """Dated changes, major incidents, monitoring tickets, problem records, telemetry outages and
+    remediation actions, to line up what happened when."""
+    return tools().get_timeline(week_from, week_to, plant)
 
 
 def main() -> None:

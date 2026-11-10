@@ -1,0 +1,40 @@
+# ILLUSTRATIVE cost assumptions for the Kestrel case study (fictional client).
+# These are invented, plausible figures in South African rand (ZAR), not finance data.
+# Finance would own and replace this file; every cost in the report is shown as a low-high
+# range together with the assumptions that produced it.
+
+currency: ZAR
+illustrative: true
+owner: Finance (to be confirmed)
+as_of: 2026-10-26
+
+production:
+  # Contribution margin lost per minute a line is stopped, before overtime recovery.
+  margin_per_line_minute:
+    ROS: {low: 900, high: 1500}
+    GQB: {low: 700, high: 1200}
+    DBN: {low: 500, high: 900}
+  # Share of lost output won back with overtime later in the week (reduces the cost).
+  # The low cost estimate assumes more is recovered.
+  output_recovered:
+    low_cost: 0.50
+    high_cost: 0.20
+
+workforce:
+  # Loaded cost per hour of an office or engineering employee's time.
+  loaded_hourly_rate:
+    OF: {low: 350, high: 550}
+    EN: {low: 450, high: 700}
+  minutes_lost_per_app_crash: {low: 3, high: 8}
+  minutes_lost_per_blue_screen: {low: 15, high: 30}
+  # Shop-floor devices are excluded here: their impact is counted as line downtime.
+
+support:
+  # Fully loaded cost of handling one incident, by priority.
+  cost_per_ticket:
+    1: {low: 3500, high: 6000}
+    2: {low: 900, high: 1500}
+    3: {low: 350, high: 600}
+    4: {low: 200, high: 350}
+  # Child tickets of a major incident are mostly linked and closed in bulk.
+  child_ticket_cost_share: 0.30
