@@ -394,7 +394,7 @@ class FleetTools:
                 "change_type": "relative" if r["change_type"] == "pct" else "absolute",
                 "direction": r["direction"], "devices_reporting": r["devices_reporting"],
                 "events_or_startups": r["events"],
-                "confounding_warnings": [x["code"] for x in related],
+                "confounding_warnings": list(dict.fromkeys(x["code"] for x in related)),
             })
         return self._envelope(period=self._period(w, w), rows=rows, warnings=week_warnings,
                               thresholds=self.defs["thresholds"],
