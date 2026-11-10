@@ -2,8 +2,8 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-kestrel.duckdb
-kestrel.duckdb.wal
+*.duckdb
 logs/
 .DS_Store
 *.egg-info/
+*.duckdb.wal
