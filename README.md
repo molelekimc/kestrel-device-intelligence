@@ -232,9 +232,13 @@ infra/               Azure environment scripts (optional cloud deployment)
 
 ```
 raw/
-  intune/      Intune device inventory export (CSV)
-  telemetry/   Reliability agent events, one gzipped JSON-lines file per day (8 weeks)
-  plant_it/    Plant IT's 25H2 rollout tracker spreadsheet (CSV)
+  intune/       Intune device inventory export and group membership (CSV)
+  telemetry/    Reliability agent events, one gzipped JSON-lines file per day (8 weeks)
+  plant_it/     Plant IT's 25H2 rollout tracker spreadsheet (CSV)
+  itsm/         Service desk incident export (CSV)                     — Phase 6
+  change/       CAB change requests (CSV)                              — Phase 6
+  mes/          MES production lines, station terminals, line stops    — Phase 6
+  remediation/  Problem management remediation register (CSV)         — Phase 6
 ```
 
 See [SOURCES.md](SOURCES.md) for what each source contains and how they relate.
@@ -246,7 +250,11 @@ pip install pandas numpy
 python generate_sources.py
 ```
 
-`SEED` and `N_DEVICES` at the top of the script control the run.
+```bash
+.venv/bin/python generate_business_sources.py
+```
+
+`SEED` and `N_DEVICES` at the top of `generate_sources.py` control the device run. The business generator reads the device sources, so run it second. Unlike the device sources, the business pipeline was written by the same author as the business generator, so its evaluation is a consistency check, not a blind test.
 
 ## Azure environment
 
