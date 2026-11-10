@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+kestrel.duckdb
+kestrel.duckdb.wal
+logs/
+.DS_Store
+*.egg-info/
