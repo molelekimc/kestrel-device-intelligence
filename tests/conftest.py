@@ -3,6 +3,7 @@
 import csv
 import gzip
 import json
+import shutil
 from datetime import datetime, timezone
 
 import duckdb
@@ -43,16 +44,16 @@ def write_raw(root):
 
     rows = [
         ["i-1", "ROS-OF-00001", "Rosslyn Plant", "Intune", "Corporate", "Compliant", "Windows",
-         "10.0.26100.6584", "2026-10-25 10:00:00", "2025-01-01 09:00:00", "SER1", "Lenovo",
+         "10.0.26100.6584", "2026-10-25 10:00:00", "2025-01-01 09:00:00", "PF0TST01", "Lenovo",
          "Lenovo ThinkPad T14 Gen 4", "user.one@kestrel-ag.example", A1, "476.83 GB"],
         ["i-0", " ros-of-00001 ", "rosslyn", "Intune", "Corporate", "noncompliant", "Windows",
-         "26100.6584", "3/15/2026 10:00:00 AM", "01/02/2024 10:00", "SER1", "Lenovo",
+         "26100.6584", "3/15/2026 10:00:00 AM", "01/02/2024 10:00", "PF0TST01", "Lenovo",
          "21HD5852ZA", "user.one@kestrel-ag.example", A0, "512"],
         ["i-2", "GQB-SF-00002", "PE Plant", "Co-managed", "Corporate", "Compliant", "Windows",
-         "19044.6332", "10/24/2026 08:00:00 PM", "2024-06-01 08:00:00", "SER2", "Lenovo",
+         "19044.6332", "10/24/2026 08:00:00 PM", "2024-06-01 08:00:00", "PF0TST02", "Lenovo",
          "11T33300ZA", "", B1, "256 GB"],
         ["i-3", "DBN-EN-00003", "", "Intune", "Corporate", "null", "Windows",
-         "10.0.26200.6901", "2026-07-01 08:00:00", "2023-03-01 08:00:00", "SER3", "Dell",
+         "10.0.26200.6901", "2026-07-01 08:00:00", "2023-03-01 08:00:00", "PF0TST03", "Dell",
          "Precision 3660", "user.three@kestrel-ag.example", C1, "1024 GB"],
     ]
     with open(root / "intune" / "kestrel_intune_devices_20261026.csv", "w", newline="",
@@ -118,6 +119,22 @@ def mini_db(tmp_path_factory):
     bronze.build(con)
     silver.build(con)
     gold.build(con)
+    con.execute("CHECKPOINT")
+    # A second copy for read-only tool tests; DuckDB will not open one file
+    # read-write and read-only in the same process.
+    shutil.copy(root / "mini.duckdb", root / "mini_ro.duckdb")
     yield con
     con.close()
     mp.undo()
+
+
+@pytest.fixture(scope="session")
+def mini_db_path(mini_db, tmp_path_factory):
+    return next(tmp_path_factory.getbasetemp().glob("raw*/mini_ro.duckdb"))
+
+
+@pytest.fixture(autouse=True)
+def audit_to_tmp(tmp_path, monkeypatch):
+    from mcp_server import audit
+    monkeypatch.setattr(audit, "AUDIT_PATH", tmp_path / "audit.jsonl")
+    return tmp_path / "audit.jsonl"
