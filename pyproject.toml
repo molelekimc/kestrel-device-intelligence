@@ -8,20 +8,24 @@ dependencies = [
     "pyyaml>=6.0",
     "mcp>=2.0",
     "anthropic>=0.40",
+    "fastapi>=0.115",
+    "sse-starlette>=2.0",
+    "uvicorn>=0.30",
 ]
 
 [project.scripts]
 kestrel-mcp = "mcp_server.server:main"
+kestrel-app = "api.main:run"
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "httpx>=0.27"]
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["pipeline*", "mcp_server*", "automation*", "evals*"]
+include = ["pipeline*", "mcp_server*", "automation*", "evals*", "reporting*", "replay*", "refresh*", "api*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -55,11 +55,18 @@ def _execute(tools: FleetTools, name: str, args: dict) -> tuple[str, bool]:
 
 
 def run(system: str, prompt: str, *, tools: FleetTools, model: str | None = None,
-        client=None, max_turns: int = MAX_TURNS, effort: str = "high") -> LoopResult:
+        client=None, max_turns: int = MAX_TURNS, effort: str = "high",
+        history: list[dict] | None = None, on_event=None) -> LoopResult:
+    """history: earlier plain-text turns [{"role": "user"|"assistant", "content": str}].
+    on_event: called with {"type": "tool", "name", "args"} before each tool runs and
+    {"type": "tool_done", "name", "ok"} after, so a UI can show progress."""
     model = model or DEFAULT_MODEL
     client = client or anthropic.Anthropic()
     defs = tool_definitions()
-    messages: list[dict] = [{"role": "user", "content": prompt}]
+    emit = on_event or (lambda e: None)
+    messages: list[dict] = [{"role": m["role"], "content": m["content"]} for m in (history or [])
+                            if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str)]
+    messages.append({"role": "user", "content": prompt})
     result = LoopResult(text="", model=model)
     extra = {"betas": ["server-side-fallback-2026-07-01"], "fallbacks": "default"} \
         if model in FALLBACK_MODELS else {}
@@ -98,7 +105,9 @@ def run(system: str, prompt: str, *, tools: FleetTools, model: str | None = None
 
         outputs = []
         for block in (b for b in response.content if b.type == "tool_use"):
+            emit({"type": "tool", "name": block.name, "args": dict(block.input)})
             content, is_error = _execute(tools, block.name, dict(block.input))
+            emit({"type": "tool_done", "name": block.name, "ok": not is_error})
             result.tool_calls.append({"tool": block.name, "args": dict(block.input), "ok": not is_error})
             outputs.append({"type": "tool_result", "tool_use_id": block.id,
                             "content": content, "is_error": is_error})
