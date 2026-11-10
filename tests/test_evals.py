@@ -15,14 +15,14 @@ def q(qid):
 
 def test_questions_file_is_well_formed():
     qs = run.load_questions()
-    assert 10 <= len(qs) <= 15
+    assert 20 <= len(qs) <= 25
     assert len({x["id"] for x in qs}) == len(qs)
     for x in qs:
         assert x["question"].strip() and x["rubric"], x["id"]
         assert x.get("rules", {}).get("all_of") or x.get("rules", {}).get("none_of"), x["id"]
     # Every storyline in the answer key is covered.
     covered = {s for x in qs for s in (x["storyline"] if isinstance(x["storyline"], list) else [x["storyline"]])}
-    assert {"A", "B", "C", "D", "E", "tracker", "guardrail"} <= covered
+    assert {"A", "B", "C", "D", "E", "tracker", "guardrail", "F", "G", "H", "I", "J", "K"} <= covered
 
 
 def test_rules_reward_model_and_build_not_plant():

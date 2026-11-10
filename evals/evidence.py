@@ -144,3 +144,82 @@ G2_user = G1_hostnames
 
 def W1_week_summary(t: FleetTools):
     return C1_durban_w41(t) + E1_crash_spike(t)[:1]
+
+
+# ------------------------------------------------------------------ business layer (Phase 6)
+
+def F1_durban_hidden_mes(t: FleetTools):
+    d = t.get_business_impact("2026-W41", "2026-W41", plant="DBN")["downtime_total"]
+    tel = t.get_top_events("app_crash", week_from="2026-W41", week_to="2026-W41", plant="DBN", limit=1)["rows"]
+    return [("Durban lost 300+ line-stop minutes to MES client faults in W41", d["it_app_minutes"] > 300,
+             f"{d['it_app_minutes']} min"),
+            ("Telemetry under-counts Durban MES crashes in W41 (outage)",
+             not tel or tel[0].get("events", 0) < 500, str(tel[0].get("events") if tel else 0))] + C1_durban_w41(t)[:1]
+
+
+def F2_mes_cost(t: FleetTools):
+    r = t.get_business_impact("2026-W41", "2026-W41")
+    top = r["cost_by_driver"][0]
+    return [("W41 total cost is a range in the low millions (ZAR)",
+             1e6 < r["cost_total_zar"]["low"] < r["cost_total_zar"]["high"] < 1e7,
+             f"R{r['cost_total_zar']['low']:,.0f} - R{r['cost_total_zar']['high']:,.0f}"),
+            ("Top cost driver is MES client line stops", "IT-APP" in top["driver"],
+             f"{top['driver']}: R{top['cost_low_zar']:,.0f} - R{top['cost_high_zar']:,.0f}"),
+            ("Assumptions are flagged illustrative", r["cost_assumptions"]["illustrative"] is True, "")]
+
+
+def G1_bsod_change(t: FleetTools):
+    s = {c["change_id"]: c for c in t.get_change_correlation(include_no_evidence=True)["rows"]}
+    w2 = t.get_change_correlation(change_id="CHG0041021", metric="bsod_rate")["rows"][0]
+    return [("Wave 2 25H2 ring: blue screens up in scope, not in comparison",
+             w2["evidence"] in ("moderate", "strong") and w2["rel_change_scope"] > 0.3,
+             f"{w2['evidence']}: {w2['rel_change_scope']:+.0%} vs {w2['rel_change_comparison']:+.0%}"),
+            ("Driver-update change carries the 0x116 shift (weak, with Wave 2 competing)",
+             s["CHG0041007"]["evidence"] == "weak" and "CHG0041021" in (s["CHG0041007"]["competing_changes"] or ""),
+             str(s["CHG0041007"]["mechanism"]))] + A1_gqeberha_bsod(t)[3:4]
+
+
+def G2_mini_pause(t: FleetTools):
+    r = {x["action_id"]: x for x in t.get_remediation_status()["rows"]}["RA-001"]
+    n = int(r["implementation_evidence"].split()[0])
+    return [("Pause verdict is claimed_not_implemented", r["verdict"] == "claimed_not_implemented", r["verdict"]),
+            ("Hundreds of Minis first reported 25H2 after 14 Oct", n > 300, r["implementation_evidence"])]
+
+
+def F3_hotfix(t: FleetTools):
+    r = {x["action_id"]: x for x in t.get_remediation_status()["rows"]}["RA-003"]
+    return [("Hotfix verdict is effective", r["verdict"] == "effective", r["verdict"]),
+            ("MES crash rate falls 70%+ after the hotfix", r["rel_change"] <= -0.7,
+             f"{r['before']} -> {r['after']} ({r['rel_change']:+.0%})")]
+
+
+def H1_outage_detection(t: FleetTools):
+    rows = t.get_timeline("2026-W41", "2026-W41", plant="DBN")["rows"]
+    kinds = {(x["kind"], x["ref"][:3]): x for x in rows}
+    det = next(x for x in rows if x["kind"] == "detection")
+    proxy = t.get_change_correlation(change_id="CHG0041030", metric="coverage")["rows"][0]
+    return [("Detection ticket opened Thu 8 Oct", det["event_at"].startswith("2026-10-08"), det["event_at"]),
+            ("Proxy change shows strong coverage drop for Durban", proxy["evidence"] == "strong",
+             f"{proxy['rel_change_scope']:+.0%}"),
+            ("Allow-list remediation is effective",
+             {x["action_id"]: x["verdict"] for x in t.get_remediation_status()["rows"]}["RA-005"] == "effective", "")]
+
+
+def I1_ltsc_tickets(t: FleetTools):
+    v = {x["action_id"]: x["verdict"] for x in t.get_remediation_status()["rows"]}
+    return B2_coverage_health(t)[1:2] + [("LTSC investigation is still open", v["RA-007"] == "open", v["RA-007"])]
+
+
+def J1_defender(t: FleetTools):
+    d = t.get_change_correlation(change_id="CHG0041033", metric="app_crash_rate")["rows"][0]
+    return [("Defender change: no comparison group, weak at most", not d["has_comparison"] and d["evidence"] == "weak",
+             d["evidence"]),
+            ("Its crash shift is explained by CHG0041031", "CHG0041031" in (d["mechanism_change"] or ""),
+             str(d["mechanism"]))]
+
+
+def K1_bsod_desk(t: FleetTools):
+    r = t.get_ticket_metrics(category="Display / blue screen", group_by="plant")["period_total"][0]
+    return [("Blue screen tickets: median resolution over a day", r["mttr_p50_hours"] > 24, f"{r['mttr_p50_hours']} h"),
+            ("Blue screen tickets breach SLA more than a third of the time", r["sla_breach_rate"] > 0.33,
+             f"{r['sla_breach_rate']:.0%}")]

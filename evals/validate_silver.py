@@ -76,8 +76,44 @@ def run(db_path=None) -> dict:
         FROM t LEFT JOIN (SELECT device_key, max(event_date) AS last_seen FROM silver_telemetry_event GROUP BY 1) e
           ON e.device_key = t.hostname
         WHERE t.is_ltsc = 'True' AND t.agent_24_date IS NOT NULL AND t.agent_24_date <= '2026-10-25'""")
+    _business(con, r)
     con.close()
     return r
+
+
+BUSINESS = config.ROOT / "answer_key" / "business_truth"
+
+
+def _business(con, r: dict) -> None:
+    """Business Silver/Gold (Phase 6) against the business generator's truth files."""
+    con.execute(f"""CREATE TEMP VIEW tt AS SELECT * FROM read_csv('{BUSINESS}/ticket_truth.csv', all_varchar = true)
+                    WHERE is_stale_duplicate_row = 'False'""")
+    con.execute(f"CREATE TEMP VIEW dtt AS SELECT * FROM read_csv('{BUSINESS}/downtime_truth.csv', all_varchar = true)")
+    con.execute(f"CREATE TEMP VIEW rt AS SELECT * FROM read_csv('{BUSINESS}/remediation_truth.csv', all_varchar = true)")
+    r["tickets_found"] = _rate(con, "SELECT count(s.number), count(*) FROM tt LEFT JOIN silver_ticket s USING (number)")
+    r["ticket_device_when_ci_given"] = _rate(con, """
+        SELECT count(*) FILTER (WHERE s.device_key = t.device), count(*)
+        FROM tt t JOIN silver_ticket s USING (number)
+        JOIN (SELECT DISTINCT number FROM bronze_itsm_incidents WHERE coalesce(trim(cmdb_ci), '') <> '') b USING (number)
+        WHERE t.device <> ''""")
+    r["ticket_invalid_time_flagged"] = _rate(con, """
+        SELECT count(*) FILTER (WHERE coalesce(s.time_invalid, false) = (t.resolved_before_opened = 'True')), count(*)
+        FROM tt t JOIN silver_ticket s USING (number)""")
+    r["downtime_duplicates_removed"] = _rate(con, """
+        SELECT count(*) FILTER (WHERE s.event_id IS NULL), count(*) FROM dtt d
+        LEFT JOIN silver_downtime s USING (event_id) WHERE d.is_duplicate = 'True'""")
+    r["downtime_it_attribution"] = _rate(con, """
+        SELECT count(*) FILTER (WHERE s.is_it = (d.it_or_non_it = 'IT')), count(*)
+        FROM dtt d JOIN silver_downtime s USING (event_id)""")
+    r["downtime_it_recoded_other_recovered"] = _rate(con, """
+        SELECT count(*) FILTER (WHERE s.is_it), count(*) FROM dtt d JOIN silver_downtime s USING (event_id)
+        WHERE d.recoded_as_other = 'true' OR d.recoded_as_other = 'True'""")
+    r["downtime_minutes_within_1"] = _rate(con, """
+        SELECT count(*) FILTER (WHERE abs(s.minutes - d.true_minutes::DOUBLE) <= 1), count(*)
+        FROM dtt d JOIN silver_downtime s USING (event_id)""")
+    r["remediation_verdicts"] = _rate(con, """
+        SELECT count(*) FILTER (WHERE g.verdict = rt.true_verdict), count(*)
+        FROM rt JOIN gold_remediation_effect g USING (action_id)""")
 
 
 if __name__ == "__main__":

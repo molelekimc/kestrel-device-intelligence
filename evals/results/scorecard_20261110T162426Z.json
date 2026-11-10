@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-11-10T14:58:53+00:00",
+  "run_at": "2026-11-10T16:24:13+00:00",
   "questions": [
     {
       "id": "A1_gqeberha_bsod",
@@ -52,6 +52,42 @@
     {
       "id": "W1_week_summary",
       "storyline": "C, E, B"
+    },
+    {
+      "id": "F1_durban_hidden_mes",
+      "storyline": "F, C"
+    },
+    {
+      "id": "F2_mes_cost",
+      "storyline": "F"
+    },
+    {
+      "id": "G1_bsod_change",
+      "storyline": "G, A"
+    },
+    {
+      "id": "G2_mini_pause",
+      "storyline": "G"
+    },
+    {
+      "id": "F3_hotfix",
+      "storyline": "F"
+    },
+    {
+      "id": "H1_outage_detection",
+      "storyline": "H"
+    },
+    {
+      "id": "I1_ltsc_tickets",
+      "storyline": "I, B"
+    },
+    {
+      "id": "J1_defender",
+      "storyline": "J"
+    },
+    {
+      "id": "K1_bsod_desk",
+      "storyline": "G, K"
     }
   ],
   "answer_model": null,
@@ -145,6 +181,70 @@
         "of": 2995,
         "minimum": 0.95,
         "pass": true
+      },
+      {
+        "check": "tickets_found",
+        "rate": 1.0,
+        "matched": 5217,
+        "of": 5217,
+        "minimum": 1.0,
+        "pass": true
+      },
+      {
+        "check": "ticket_device_when_ci_given",
+        "rate": 1.0,
+        "matched": 4593,
+        "of": 4593,
+        "minimum": 0.99,
+        "pass": true
+      },
+      {
+        "check": "ticket_invalid_time_flagged",
+        "rate": 1.0,
+        "matched": 5217,
+        "of": 5217,
+        "minimum": 1.0,
+        "pass": true
+      },
+      {
+        "check": "downtime_duplicates_removed",
+        "rate": 1.0,
+        "matched": 50,
+        "of": 50,
+        "minimum": 1.0,
+        "pass": true
+      },
+      {
+        "check": "downtime_it_attribution",
+        "rate": 1.0,
+        "matched": 3119,
+        "of": 3119,
+        "minimum": 0.98,
+        "pass": true
+      },
+      {
+        "check": "downtime_it_recoded_other_recovered",
+        "rate": 1.0,
+        "matched": 145,
+        "of": 145,
+        "minimum": 0.95,
+        "pass": true
+      },
+      {
+        "check": "downtime_minutes_within_1",
+        "rate": 1.0,
+        "matched": 3119,
+        "of": 3119,
+        "minimum": 0.99,
+        "pass": true
+      },
+      {
+        "check": "remediation_verdicts",
+        "rate": 1.0,
+        "matched": 8,
+        "of": 8,
+        "minimum": 1.0,
+        "pass": true
       }
     ],
     "raw": {
@@ -220,6 +320,46 @@
       "ltsc_silent_after_agent_24": {
         "matched": 2995,
         "of": 2995,
+        "rate": 1.0
+      },
+      "tickets_found": {
+        "matched": 5217,
+        "of": 5217,
+        "rate": 1.0
+      },
+      "ticket_device_when_ci_given": {
+        "matched": 4593,
+        "of": 4593,
+        "rate": 1.0
+      },
+      "ticket_invalid_time_flagged": {
+        "matched": 5217,
+        "of": 5217,
+        "rate": 1.0
+      },
+      "downtime_duplicates_removed": {
+        "matched": 50,
+        "of": 50,
+        "rate": 1.0
+      },
+      "downtime_it_attribution": {
+        "matched": 3119,
+        "of": 3119,
+        "rate": 1.0
+      },
+      "downtime_it_recoded_other_recovered": {
+        "matched": 145,
+        "of": 145,
+        "rate": 1.0
+      },
+      "downtime_minutes_within_1": {
+        "matched": 3119,
+        "of": 3119,
+        "rate": 1.0
+      },
+      "remediation_verdicts": {
+        "matched": 8,
+        "of": 8,
         "rate": 1.0
       }
     },
@@ -450,6 +590,161 @@
         }
       ],
       "pass": true
+    },
+    "F1_durban_hidden_mes": {
+      "checks": [
+        {
+          "check": "Durban lost 300+ line-stop minutes to MES client faults in W41",
+          "pass": true,
+          "detail": "719.7 min"
+        },
+        {
+          "check": "Telemetry under-counts Durban MES crashes in W41 (outage)",
+          "pass": true,
+          "detail": "284"
+        },
+        {
+          "check": "Durban reports zero devices Mon 5 to Fri 9 Oct",
+          "pass": true,
+          "detail": "2026-10-05=0, 2026-10-06=0, 2026-10-07=0, 2026-10-08=0, 2026-10-09=0"
+        }
+      ],
+      "pass": true
+    },
+    "F2_mes_cost": {
+      "checks": [
+        {
+          "check": "W41 total cost is a range in the low millions (ZAR)",
+          "pass": true,
+          "detail": "R2,269,468 - R5,728,486"
+        },
+        {
+          "check": "Top cost driver is MES client line stops",
+          "pass": true,
+          "detail": "MES client faults (IT-APP): R1,476,650 - R4,015,272"
+        },
+        {
+          "check": "Assumptions are flagged illustrative",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "pass": true
+    },
+    "G1_bsod_change": {
+      "checks": [
+        {
+          "check": "Wave 2 25H2 ring: blue screens up in scope, not in comparison",
+          "pass": true,
+          "detail": "moderate: +49% vs -1%"
+        },
+        {
+          "check": "Driver-update change carries the 0x116 shift (weak, with Wave 2 competing)",
+          "pass": true,
+          "detail": "increase concentrated in 0x00000116 (0 -> 8 events)"
+        },
+        {
+          "check": "Top bug check code for that slice is 0x116 (video TDR)",
+          "pass": true,
+          "detail": "0x00000116"
+        }
+      ],
+      "pass": true
+    },
+    "G2_mini_pause": {
+      "checks": [
+        {
+          "check": "Pause verdict is claimed_not_implemented",
+          "pass": true,
+          "detail": "claimed_not_implemented"
+        },
+        {
+          "check": "Hundreds of Minis first reported 25H2 after 14 Oct",
+          "pass": true,
+          "detail": "462 devices in scope first reported Win11 25H2 after 2026-10-14"
+        }
+      ],
+      "pass": true
+    },
+    "F3_hotfix": {
+      "checks": [
+        {
+          "check": "Hotfix verdict is effective",
+          "pass": true,
+          "detail": "effective"
+        },
+        {
+          "check": "MES crash rate falls 70%+ after the hotfix",
+          "pass": true,
+          "detail": "718.059 -> 106.687 (-85%)"
+        }
+      ],
+      "pass": true
+    },
+    "H1_outage_detection": {
+      "checks": [
+        {
+          "check": "Detection ticket opened Thu 8 Oct",
+          "pass": true,
+          "detail": "2026-10-08 10:15:00"
+        },
+        {
+          "check": "Proxy change shows strong coverage drop for Durban",
+          "pass": true,
+          "detail": "-84%"
+        },
+        {
+          "check": "Allow-list remediation is effective",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "pass": true
+    },
+    "I1_ltsc_tickets": {
+      "checks": [
+        {
+          "check": "Win10 LTSC coverage collapses by W43",
+          "pass": true,
+          "detail": "W36 0.886 -> W43 0.085"
+        },
+        {
+          "check": "LTSC investigation is still open",
+          "pass": true,
+          "detail": "open"
+        }
+      ],
+      "pass": true
+    },
+    "J1_defender": {
+      "checks": [
+        {
+          "check": "Defender change: no comparison group, weak at most",
+          "pass": true,
+          "detail": "weak"
+        },
+        {
+          "check": "Its crash shift is explained by CHG0041031",
+          "pass": true,
+          "detail": "increase concentrated in KestrelMES.exe 4.2.0 (0 -> 4513 events)"
+        }
+      ],
+      "pass": true
+    },
+    "K1_bsod_desk": {
+      "checks": [
+        {
+          "check": "Blue screen tickets: median resolution over a day",
+          "pass": true,
+          "detail": "32.178 h"
+        },
+        {
+          "check": "Blue screen tickets breach SLA more than a third of the time",
+          "pass": true,
+          "detail": "55%"
+        }
+      ],
+      "pass": true
     }
   },
   "answers": {},
@@ -466,6 +761,12 @@
       "defect": "The os_build rejection message echoed the normalised value ('23h2') instead of the caller's input.",
       "fix": "mcp_server/guardrails.py echoes the original value.",
       "result": "Regression test added."
+    },
+    {
+      "found_by": "business evidence checks while building Phase 6 (change correlation)",
+      "defect": "Change evidence ranked every metric for every change, so changes in nearby weeks inherited each other's effects (the shop-floor agent rollout 'explained' the MES 4.2.0 crash spike; the HP Mini exclusion 'reduced' MES crashes), and a break and its fix in the same week looked identical.",
+      "fix": "pipeline/gold_business.py judges each change only on metrics its type can move, names the app version or bug check code carrying the shift and the change that deployed it (downgrading shifts explained by another change), lists competing changes, and measures coverage on day windows until a rollout ends.",
+      "result": "MES 4.2.0, the Durban proxy change and its fix, and the hotfix are strong; the Defender red herring is weak and 'explained by CHG0041031'; the agent rollout is moderate on coverage."
     }
   ]
 }

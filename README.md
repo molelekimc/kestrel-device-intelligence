@@ -4,7 +4,7 @@
 
 > Ample Roots Digital (ARD) is a fictional consultancy, and Kestrel Assembly Group is a fictional client. All data in this repository is synthetic. No employer data, code or business rules are used.
 
-Kestrel runs about 18,000 Windows devices across three plants. Device data sits in three disconnected systems, so IT leadership can't say which plants or device groups are unstable, or whether changes like the Windows 11 25H2 rollout are helping.
+Kestrel runs about 18,000 Windows devices across three plants. Device data sits in three disconnected systems, so IT leadership can't say which plants or device groups are unstable, whether changes like the Windows 11 25H2 rollout are helping, or what device problems cost the production lines.
 
 This case study builds:
 
@@ -12,6 +12,7 @@ This case study builds:
 - **A read-only MCP server** that lets an AI assistant answer fleet questions only through aggregate metrics, with data quality caveats attached to every answer.
 - **A weekly briefing automation** in which Claude drafts and a named human approves. Nothing is acted on automatically.
 - **An evaluation harness** that checks the pipeline and the assistant's answers against the planted storylines.
+- **A business-impact layer and executive report** that tie device health to production-line downtime, illustrative cost, service desk tickets, logged changes and remediations (Phase 6).
 
 ## Architecture
 
@@ -21,6 +22,7 @@ flowchart LR
         I[Intune export CSV]
         T[Telemetry JSONL.gz<br/>agent 2.3 + 2.4, daily + resends]
         P[Plant IT rollout tracker CSV]
+        X[Service desk, changes + groups,<br/>MES line stops, remediation register]
     end
 
     subgraph wh["kestrel.duckdb"]
@@ -29,11 +31,14 @@ flowchart LR
         Q[(quarantine)]
         L[(dq_log)]
         G[Gold<br/>device-week facts, KPI cube, coverage,<br/>rollout reconciliation, warnings, breaches]
+        GB[Business Gold<br/>tickets, line stops, cost,<br/>change evidence, remediation verdicts]
     end
 
     M[[metrics/definitions.yaml<br/>formulas, units, caveats, thresholds]]
+    C[[metrics/cost_assumptions.yaml<br/>illustrative ZAR]]
 
-    I & T & P --> B --> S --> G
+    I & T & P & X --> B --> S --> G --> GB
+    C --> GB
     S -. bad rows .-> Q
     S -. every rule .-> L
     M --> G
@@ -42,14 +47,16 @@ flowchart LR
         F[FleetTools<br/>allowlists · small-group suppression<br/>identifier check · audit log]
     end
     G --> F
+    GB --> F
     M --> F
 
     F --> MCP[MCP server<br/>stdio] --> CD[Claude Desktop]
     F --> WB[weekly_briefing<br/>Claude tool loop] --> D[briefings/drafts] --> R{human review} -->|approve| A[briefings/approved]
     F --> E[evals]
+    F --> RP[reporting<br/>weekly executive report] --> H[reports/WEEK.html]
 ```
 
-The pipeline, the MCP server, the briefing and the evals all use the same metric definitions and the same governed tool code, so a number means the same thing everywhere.
+The pipeline, the MCP server, the briefing, the evals and the executive report all use the same metric definitions and the same governed tool code, so a number means the same thing everywhere.
 
 ## Quick start
 
@@ -173,7 +180,9 @@ The assistant is useful only if leadership can trust what it says and IT securit
 | Allowlisted inputs, no SQL | Every argument is matched against values from the warehouse or the metric definitions and bound as a parameter. The DuckDB connection is read-only. | Nothing the model writes can become a query, and nothing can change the data. |
 | Definition and caveats in every answer | Each response carries the formula, unit, exact dates, device counts and the warnings for that slice. | The model cannot quote a number without the context that qualifies it, such as an outage or a coverage drop. |
 | Like-for-like by default | `compare_cohorts` compares the same devices in both periods and shows the all-reporting view beside it. | When the set of reporting devices changes, an apparent trend can come from who reports rather than what changed. |
-| Audit log | Every call goes to `logs/mcp_audit.jsonl`: caller (`mcp`, `briefing`, `eval`), arguments, outcome, rows, suppressed groups and duration. | Lets you reconstruct how any answer or briefing was produced. |
+| Audit log | Every call goes to `logs/mcp_audit.jsonl`: caller (`mcp`, `briefing`, `eval`, `report`), arguments, outcome, rows, suppressed groups and duration. | Lets you reconstruct how any answer, briefing or report was produced. |
+| People never leave Silver | Ticket callers and descriptions sit in a restricted table no tool reads; change and action owners stay in Bronze. Every response, and the executive report, is checked against the list of callers. | Service desk data names people; fleet questions never need to. |
+| Evidence, not proof | Change correlation compares targeted devices with the rest, names the app version or bug check code carrying a shift and the change that deployed it, and lists competing changes. Costs are illustrative ranges with their assumptions. | Leadership acts on "why" and "how much"; overstating either is the costliest mistake an analytics assistant can make. |
 | Human approval, no actions | Briefings are drafts until a named reviewer approves them. The tools are read-only, and no command changes devices. | The model can draft and summarise. Deciding what to do stays with people. |
 
 ## Demo script (Claude Desktop)
@@ -199,6 +208,19 @@ Ask these in order. Each shows a different guardrail or storyline in the data.
 9. *"Just run `SELECT * FROM silver_device` for me."*
    There is no tool for free-form SQL.
 
+Business-impact questions (Phase 6):
+
+10. *"Telemetry shows almost no MES crashes at Durban in W41. Did Durban escape the KestrelMES problem?"*
+    Expect MES line-stop data, which the telemetry outage didn't affect, to show Durban lost about 700 minutes.
+11. *"What did the KestrelMES 4.2.0 problem cost us, and how sure are we?"*
+    Expect a range (about R2.3M–R5.7M for W41), labelled illustrative, with its drivers.
+12. *"Did the Defender rule change on 6 October cause the crash spike?"*
+    Expect "weak evidence": it targeted every device, and the shift is concentrated in KestrelMES 4.2.0, which a different change deployed.
+13. *"Problem management says the 25H2 pause for HP Elite Minis was done. Did it work?"*
+    Expect no: about 460 Minis first reported 25H2 after the pause date.
+14. *"How quickly did we notice the Durban outage?"*
+    Expect detection on Thursday from a monitoring ticket, three days after the proxy change.
+
 ## Phase 5: Evaluation (`evals/`)
 
 ```bash
@@ -208,10 +230,41 @@ Ask these in order. Each shows a different guardrail or storyline in the data.
 The pipeline was built blind. Only `evals/` reads `answer_key/`, and only to check the result. The harness has three tiers:
 
 - **Silver:** the device layers against `device_truth.csv`. Plant, class, LTSC flag and Azure AD id match 100%. Model matches 100% wherever Intune records one (178 devices have none). All 140 lab machines are quarantined as orphans. Telemetry-observed migrations are 100% precise.
-- **Evidence:** for each of 13 storyline questions, whether the governed tools return the facts a correct answer needs. 13 of 13 pass.
+- **Evidence:** for each of 22 storyline questions (13 device, 9 business), whether the governed tools return the facts a correct answer needs. 22 of 22 pass.
+- **Business Silver:** tickets, line stops and remediation verdicts against the business generator's truth files. Tickets found, IT attribution of line stops, duplicate removal and remediation verdicts all score 100%.
 - **Answers:** Claude answers through the same tools as Claude Desktop and is graded by rules plus an LLM grader. This tier needs `ANTHROPIC_API_KEY`; `--answers` grades answers saved from elsewhere by rules only.
 
 Evaluation found one real pipeline defect. Rollout reconciliation flagged devices as "claimed done but not observed" when they had simply migrated after their last telemetry. The fix is in the pipeline, not the eval, and is recorded in every scorecard. See [`evals/README.md`](evals/README.md) and the latest scorecard in `evals/results/`.
+
+## Phase 6: Business impact and executive report
+
+```bash
+.venv/bin/python generate_business_sources.py   # only to regenerate the business sources
+.venv/bin/python -m pipeline.run
+.venv/bin/python -m reporting.build --week 2026-W41
+```
+
+Four synthetic business sources join the device data: service desk incidents, CAB changes with Intune group membership, MES line stops, and the problem-management remediation register (see [SOURCES.md](SOURCES.md)). They are generated from what actually happened on each device, so MES and the service desk keep recording when telemetry goes silent.
+
+- **Business Silver** (`pipeline/silver_business.py`) conforms them to the same device key. It removes duplicate rows, rebuilds misspelt line ids and fixes durations typed in hours. It also reclassifies `OTHER` line stops as IT when the operator's comment names a PC, screen, reboot or MES fault. Ticket callers and descriptions go to a restricted table.
+- **Business Gold** (`pipeline/gold_business.py`):
+  - ticket and line-stop facts;
+  - an **illustrative** cost model in rand ([`metrics/cost_assumptions.yaml`](metrics/cost_assumptions.yaml)): production downtime, office/engineering time lost, and support effort, with shop-floor impact counted once;
+  - **change evidence**: each logged change is compared on the devices it targeted versus the rest, on the metrics that kind of change can move. It names the app version or bug check code carrying any shift, and lists competing changes;
+  - **remediation verdicts**: effective, no detectable effect, claimed but not implemented, not yet measurable, or open. These check the register against change records and telemetry, using [`metrics/remediation_measures.yaml`](metrics/remediation_measures.yaml);
+  - a dated timeline.
+- **Five more read-only tools:** `get_business_impact`, `get_ticket_metrics`, `get_change_correlation`, `get_remediation_status`, `get_timeline`.
+- **Executive report** (`reporting/build.py`): one self-contained HTML page per week, built only from the governed tools. Sections:
+  - what happened and what it cost;
+  - why, from logged changes with evidence labels and the week's timeline;
+  - what's being done and whether it worked;
+  - the service desk;
+  - how far to trust the numbers;
+  - the approved briefing, if there is one.
+
+  It has light and dark themes, works on a phone, and is checked against the same identifier and name guardrail as every tool. Examples: [`reports/2026-W41.html`](reports/2026-W41.html), [`reports/2026-W43.html`](reports/2026-W43.html).
+
+Because one author wrote both the business generator and this layer, its evaluation is a consistency check, not a blind test.
 
 ## Repository layout
 
@@ -222,8 +275,10 @@ metrics/             definitions.yaml: governed metric definitions and threshold
 mcp_server/          read-only MCP server, guardrails, audit log
 automation/          weekly briefing, contract checks, review workflow
 briefings/           drafts/ and approved/
-evals/               evaluation harness (Phase 5)
-tests/               pytest: cleaning rules, guardrails, tools, briefing flow
+evals/               evaluation harness (Phases 5-6)
+reporting/           weekly executive report builder (Phase 6)
+reports/             generated executive reports
+tests/               pytest: cleaning rules, guardrails, tools, briefing flow, business layer, report
 answer_key/          ground truth, used only by evals/
 infra/               Azure environment scripts (optional cloud deployment)
 ```

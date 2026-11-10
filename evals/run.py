@@ -37,6 +37,10 @@ SILVER_THRESHOLDS = {
     "model_when_known": 0.99, "ltsc_flag": 0.99, "lab_devices_quarantined_as_orphans": 1.0,
     "migration_observed_precision": 0.99, "claimed_not_observed_precision": 0.9,
     "tracker_wave_agrees_with_truth": 0.99, "ltsc_silent_after_agent_24": 0.95,
+    # Business layer (Phase 6), against the business generator's truth files
+    "tickets_found": 1.0, "ticket_device_when_ci_given": 0.99, "ticket_invalid_time_flagged": 1.0,
+    "downtime_duplicates_removed": 1.0, "downtime_it_attribution": 0.98,
+    "downtime_it_recoded_other_recovered": 0.95, "downtime_minutes_within_1": 0.99, "remediation_verdicts": 1.0,
 }
 
 # Pipeline defects found by evaluation and fixed in the pipeline (never in the eval).
@@ -59,6 +63,17 @@ PIPELINE_FIXES = [
                   "caller's input.",
         "fix": "mcp_server/guardrails.py echoes the original value.",
         "result": "Regression test added.",
+    },
+    {
+        "found_by": "business evidence checks while building Phase 6 (change correlation)",
+        "defect": "Change evidence ranked every metric for every change, so changes in nearby weeks inherited each "
+                  "other's effects (the shop-floor agent rollout 'explained' the MES 4.2.0 crash spike; the HP Mini "
+                  "exclusion 'reduced' MES crashes), and a break and its fix in the same week looked identical.",
+        "fix": "pipeline/gold_business.py judges each change only on metrics its type can move, names the app version "
+               "or bug check code carrying the shift and the change that deployed it (downgrading shifts explained by "
+               "another change), lists competing changes, and measures coverage on day windows until a rollout ends.",
+        "result": "MES 4.2.0, the Durban proxy change and its fix, and the hotfix are strong; the Defender red herring "
+                  "is weak and 'explained by CHG0041031'; the agent rollout is moderate on coverage.",
     },
 ]
 

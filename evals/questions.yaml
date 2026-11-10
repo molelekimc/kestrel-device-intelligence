@@ -185,3 +185,120 @@ questions:
       - Flags the Durban outage and the fleet coverage drop as limits on how far the numbers can be trusted.
       - Labels explanations as hypotheses and recommends checks rather than remediation.
       - Quotes the exact week window and device counts.
+
+  # ------------------------------------------------------------------ business layer (Phase 6)
+  # Written from answer_key/BUSINESS_ANSWER_KEY.md. The business generator and pipeline share an
+  # author, so these check consistency and reasoning, not a blind build.
+
+  - id: F1_durban_hidden_mes
+    storyline: [F, C]
+    question: >
+      Telemetry shows almost no MES crashes at Durban in week 2026-W41. Did Durban escape the
+      KestrelMES problem?
+    rules:
+      all_of:
+        - ["no\\b|not\\b|didn't|did not"]
+        - ["line[- ]stop|downtime|MES (stop|log)|production"]
+        - ["outage|no telemetry|not reporting|missing"]
+    rubric:
+      - Says Durban did not escape; the absence in telemetry is caused by the Durban telemetry outage (5 to 9 October).
+      - Uses MES line-stop data (which is unaffected by the outage) to show Durban lines lost several hundred minutes to MES client faults in W41.
+      - Notes that telemetry-based crash figures for Durban in W41 understate the impact.
+
+  - id: F2_mes_cost
+    storyline: F
+    question: What did the KestrelMES 4.2.0 problem cost us in week 41, and how sure are we of that number?
+    rules:
+      all_of:
+        - ["R\\s?\\d|ZAR|rand"]
+        - ["illustrative|assumption|estimate"]
+        - ["MES"]
+    rubric:
+      - Gives a cost range for W41 (roughly R2.3M-R5.7M in total, or about R1.5M-R4.0M for MES-caused line downtime) rather than a single figure.
+      - States clearly that the cost uses illustrative assumptions (margin per line-minute, overtime recovery), not finance figures.
+      - Names the drivers (line-stop minutes from MES client faults, incident handling) and the volumes behind them.
+
+  - id: G1_bsod_change
+    storyline: [G, A]
+    question: Which logged change lines up with the rise in blue screens on shop-floor terminals?
+    rules:
+      all_of:
+        - ["CHG0041021|CHG0041007|CHG0041035|25H2"]
+        - ["evidence|correlat|consistent with|lines up|hypothes"]
+      none_of:
+        - "Defender[^.]{0,60}(caused|is the cause)"
+    rubric:
+      - Points to the Windows 11 25H2 feature update rings (CHG0041021 / CHG0041035) and/or the change that enabled driver updates on the shop-floor update ring (CHG0041007).
+      - Mentions the concentration in bug check 0x116 (video TDR / graphics driver) on HP Elite Mini 800 G9.
+      - Presents this as evidence or a likely cause, not as proof.
+
+  - id: G2_mini_pause
+    storyline: G
+    question: >
+      Problem management says the Windows 11 25H2 pause for HP Elite Minis was done on 14 October.
+      Did it work?
+    rules:
+      all_of:
+        - ["no\\b|not\\b|didn't|did not|wasn't|was not"]
+        - ["\\d{3}\\s+(devices|Minis|HP)|after (the )?(14 Oct|pause)|kept (migrating|moving|upgrading)"]
+    rubric:
+      - Says the pause did not take effect: hundreds of HP Elite Minis (about 460 seen in telemetry) first reported Windows 11 25H2 after 14 October.
+      - Notes that blue screens on these devices kept rising after the pause.
+      - Recommends checking the scope or assignment of the exclusion rather than assuming it worked.
+
+  - id: F3_hotfix
+    storyline: F
+    question: Did the KestrelMES 4.2.1 hotfix work?
+    rules:
+      all_of:
+        - ["yes|effective|worked|fell|dropped|reduced|back to"]
+        - ["\\d+\\s?%|baseline"]
+    rubric:
+      - Says the hotfix was effective - MES crash rates on MES devices fell by roughly 85% from W41 to W42-W43, and/or IT line-stop time returned to the pre-spike baseline.
+      - Bases this on a before/after comparison (and notes 4.2.1 was observed on devices after 12 October).
+
+  - id: H1_outage_detection
+    storyline: H
+    question: How quickly did we notice the Durban telemetry outage, and what likely caused it?
+    rules:
+      all_of:
+        - ["Thu|8 Oct|October 8|three days|3 days"]
+        - ["proxy|CHG0041030"]
+    rubric:
+      - States the outage started Monday 5 October and was only noticed through a monitoring ticket on Thursday 8 October (about three days later).
+      - Links it to the Durban proxy migration change CHG0041030 as the likely cause (evidence, not proof).
+      - Notes the allow-list change on 9 October (CHG0041038 / RA-005) restored telemetry, and that same-day alerting (RA-006) is still in progress.
+
+  - id: I1_ltsc_tickets
+    storyline: [I, B]
+    question: The service desk has had no complaints about shop-floor telemetry. Is that area healthy?
+    rules:
+      all_of:
+        - ["no\\b|not\\b"]
+        - ["coverage|stopped reporting|silent|not reporting"]
+        - ["LTSC|agent"]
+    rubric:
+      - Says it is not healthy - Windows 10 LTSC shop-floor terminals stopped sending telemetry after the agent 2.4 rollout.
+      - Explains that silent failures generate no tickets, so ticket volume is not a measure of fleet health.
+      - Notes the investigation action (RA-007) is still open.
+
+  - id: J1_defender
+    storyline: J
+    question: Did the Defender ASR rule change on 6 October cause the October crash spike?
+    rules:
+      all_of:
+        - ["KestrelMES|MES"]
+        - ["unlikely|no\\b|not\\b|weak|does not|doesn't"]
+    rubric:
+      - Says the evidence does not support the Defender change as the cause; its evidence is weak.
+      - Explains that it targeted every device (no comparison group) while the crash increase is concentrated in KestrelMES 4.2.0, which another change (CHG0041031) deployed.
+
+  - id: K1_bsod_desk
+    storyline: [G, K]
+    question: How well is the service desk handling blue screen tickets?
+    rules:
+      all_of:
+        - ["SLA|resolve|resolution|hours|days"]
+    rubric:
+      - Reports that blue screen tickets are slow to resolve (median around one to two days) with a high SLA breach rate and frequent reopens.
+      - Connects this to the unresolved underlying problem (graphics driver / problem PRB0040001), with the driver pilot not yet in place.
