@@ -85,7 +85,12 @@ class Validator:
                 aliases[build] = release
         v = str(value).strip().lower()
         m = re.match(r"^(?:10\.0\.)?(\d{5})(?:\.\d+)?$", v)
-        return _pick(m.group(1) if m else v, aliases, "os_build / os_release")
+        try:
+            return _pick(m.group(1) if m else v, aliases, "os_build / os_release")
+        except ToolInputError:
+            # Echo what the caller typed, not the normalised lookup key.
+            raise ToolInputError(f"Unknown os_build / os_release {value!r}. "
+                                 f"Allowed: {', '.join(sorted(set(aliases.values())))}") from None
 
     def week(self, value: str | None, default: str | None = None) -> str | None:
         if value is None:

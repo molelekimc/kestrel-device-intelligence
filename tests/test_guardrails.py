@@ -48,6 +48,11 @@ def test_os_build_aliases(mini_tools, value):
     assert mini_tools.v.os_release(value) == "Win11 24H2"
 
 
+def test_os_build_error_echoes_input(mini_tools):
+    with pytest.raises(ToolInputError, match=r"Unknown os_build / os_release '23H2'\. Allowed: "):
+        mini_tools.v.os_release("23H2")
+
+
 def test_metric_and_limit(mini_tools):
     assert mini_tools.v.metric("BSOD_RATE") == "bsod_rate"
     with pytest.raises(ToolInputError):
