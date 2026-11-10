@@ -118,7 +118,22 @@ def _coverage_daily(con) -> None:
         FROM gold_coverage_daily""")
 
 
+def _verification_lag_days(con) -> int:
+    """Days after the scheduled date by which 95% of verified upgrades show 25H2 in
+    telemetry (the upgrade can slip, and the device must boot again to report).
+    Before that, a Done claim with an old build is too early to call wrong."""
+    lag = con.execute(f"""
+        SELECT ceil(quantile_cont(date_diff('day', t.scheduled_date, e.first_seen), 0.95))
+        FROM silver_rollout_tracker t
+        JOIN (SELECT device_key, min(event_date) AS first_seen FROM silver_telemetry_event
+              WHERE os_release = '{TARGET_RELEASE}' GROUP BY 1) e USING (device_key)
+        WHERE t.status = 'Done' AND t.scheduled_date IS NOT NULL
+          AND e.first_seen >= t.scheduled_date""").fetchone()[0]
+    return int(lag or 0)
+
+
 def _rollout(con) -> None:
+    lag = _verification_lag_days(con)
     con.execute(f"""
         CREATE OR REPLACE TABLE gold_rollout_reconciliation AS
         WITH tel AS (
@@ -148,7 +163,8 @@ def _rollout(con) -> None:
                  CASE WHEN first_target_seen IS NOT NULL THEN 'exempt_but_upgraded' ELSE 'exempt_ok' END
             WHEN first_target_seen IS NOT NULL AND last_release <> '{TARGET_RELEASE}' THEN 'rolled_back_observed'
             WHEN tracker_status = 'Done' AND last_release = '{TARGET_RELEASE}' THEN 'confirmed'
-            WHEN tracker_status = 'Done' AND last_seen < scheduled_date THEN 'unverifiable_stale_telemetry'
+            WHEN tracker_status = 'Done' AND last_seen < scheduled_date + INTERVAL {lag} DAY
+                 THEN 'unverifiable_stale_telemetry'
             WHEN tracker_status = 'Done' THEN 'claimed_not_observed'
             WHEN last_release = '{TARGET_RELEASE}' THEN 'observed_not_claimed'
             ELSE 'consistent_not_upgraded'
@@ -160,7 +176,12 @@ def _rollout(con) -> None:
         FROM gold_rollout_reconciliation GROUP BY ALL""")
     dq.log_count(con, "rollout_claimed_not_observed", "gold_rollout_reconciliation",
                  "reconciliation_status = 'claimed_not_observed'",
-                 "tracker says Done but telemetry still shows the old build", "warning")
+                 f"tracker says Done but telemetry still shows the old build more than {lag} days "
+                 "after the scheduled date", "warning")
+    dq.log_count(con, "rollout_too_early_to_verify", "gold_rollout_reconciliation",
+                 "reconciliation_status = 'unverifiable_stale_telemetry'",
+                 f"tracker says Done; telemetry ends within {lag} days of the scheduled date "
+                 "(95th percentile lag to first 25H2 sighting), so the claim cannot be checked yet")
 
 
 def _warnings(con) -> None:

@@ -201,7 +201,17 @@ Ask these in order. Each shows a different guardrail or storyline in the data.
 
 ## Phase 5: Evaluation (`evals/`)
 
-`python -m evals.run` asks storyline questions through the same tools, grades the answers and writes a scorecard to `evals/results/`. Details will be in `evals/README.md` once it is built.
+```bash
+.venv/bin/python -m evals.run
+```
+
+The pipeline was built blind. Only `evals/` reads `answer_key/`, and only to check the result. The harness has three tiers:
+
+- **Silver:** the device layers against `device_truth.csv`. Plant, class, LTSC flag and Azure AD id match 100%. Model matches 100% wherever Intune records one (178 devices have none). All 140 lab machines are quarantined as orphans. Telemetry-observed migrations are 100% precise.
+- **Evidence:** for each of 13 storyline questions, whether the governed tools return the facts a correct answer needs. 13 of 13 pass.
+- **Answers:** Claude answers through the same tools as Claude Desktop and is graded by rules plus an LLM grader. This tier needs `ANTHROPIC_API_KEY`; `--answers` grades answers saved from elsewhere by rules only.
+
+Evaluation found one real pipeline defect. Rollout reconciliation flagged devices as "claimed done but not observed" when they had simply migrated after their last telemetry. The fix is in the pipeline, not the eval, and is recorded in every scorecard. See [`evals/README.md`](evals/README.md) and the latest scorecard in `evals/results/`.
 
 ## Repository layout
 

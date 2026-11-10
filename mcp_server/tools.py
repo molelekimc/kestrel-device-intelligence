@@ -23,8 +23,10 @@ SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
 
 RECONCILIATION_MEANING = {
     "confirmed": "Tracker says Done and telemetry shows the device on Win11 25H2.",
-    "claimed_not_observed": "Tracker says Done but the device's latest telemetry is still on an older build.",
-    "unverifiable_stale_telemetry": "Tracker says Done but the device stopped reporting before its scheduled date.",
+    "claimed_not_observed": ("Tracker says Done but the device kept reporting an older build well after "
+                             "its scheduled date."),
+    "unverifiable_stale_telemetry": ("Tracker says Done but telemetry ends too soon after the scheduled date "
+                                     "to verify it (upgrades usually show within about a week)."),
     "observed_not_claimed": "Telemetry shows 25H2 but the tracker does not say Done.",
     "rolled_back_observed": "Telemetry showed 25H2 and later an older build.",
     "consistent_not_upgraded": "Tracker does not say Done and telemetry agrees (not on 25H2).",
