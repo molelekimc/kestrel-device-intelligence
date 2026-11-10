@@ -1,0 +1,9 @@
+action_id,problem_id,title,linked_change,owner,target,status,date_raised,due_date,date_actioned,verified,expected_benefit,comments
+RA-001,PRB0040001,Pause Windows 11 25H2 for HP Elite Mini 800 G9,CHG0041044,KP,All HP Elite Mini 800 G9,Done,12 Oct 2026,14 Oct 2026,14 Oct 2026,,Stop new blue screens on HP Minis,Exclusion group added
+RA-002,PRB0040001,Pilot Intel graphics driver update on HP Mini (GQB L03),CHG0041048,AN,GQB line 3 HP Minis,Scheduled,16 Oct 2026,26 Oct 2026,,,Fix VIDEO_TDR_FAILURE,Pilot booked for 26 Oct
+RA-003,PRB0040002,Hotfix KestrelMES client 4.2.1,CHG0041039,SN,All MES clients,Completed,06 Oct 2026,12 Oct 2026,12 Oct 2026,Y,Stop MES crashes,
+RA-004,PRB0040002,Require pilot plant for MES releases (CAB rule),,TM,CAB process,done ,2026-10-13,2026-10-20,2026-10-19,N/A,Prevent repeat,process change
+RA-005,PRB0040003,Allow-list telemetry endpoint on Durban proxy,CHG0041038,JvdM,Durban site,Done,08 Oct 2026,09 Oct 2026,09 Oct 2026,Y,Restore Durban telemetry,
+RA-006,PRB0040003,Alert when a plant stops sending telemetry,,AN,Analytics platform,In Progress,09 Oct 2026,30 Oct 2026,,,Detect outages same day,
+RA-007,PRB0040004,Investigate reliability agent 2.4 on Windows 10 LTSC,,SN,LTSC shop-floor terminals,Open,20 Oct 2026,06 Nov 2026,,,Restore LTSC telemetry,Vendor case logged
+RA-008,,Teams cache clean-up script to reduce Teams crashes,CHG0041027,KP,Office laptops,Closed,2026-09-22,2026-09-28,2026-09-28,Y,Fewer Teams crashes,

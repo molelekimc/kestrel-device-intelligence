@@ -1,0 +1,9 @@
+action_id,change,true_verdict
+RA-001,CHG0041044,claimed_not_implemented
+RA-002,CHG0041048,not_yet_measurable
+RA-003,CHG0041039,effective
+RA-004,,not_measurable_process
+RA-005,CHG0041038,effective
+RA-006,,open
+RA-007,,open
+RA-008,CHG0041027,no_detectable_effect

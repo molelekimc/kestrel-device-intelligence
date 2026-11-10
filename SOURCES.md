@@ -98,3 +98,82 @@ The tracker can only be joined by hostname, which means hostnames need careful s
 3. Did the 25H2 rollout improve or harm reliability, and for which cohorts?
 4. Does the rollout tracker agree with what devices actually report?
 5. How complete is the telemetry, by plant and by day?
+
+---
+
+# Business sources (Phase 6)
+
+> These sources stand in for Kestrel's service desk, change management, MES and problem
+> management systems. They are written by `generate_business_sources.py`, which reads the device
+> sources above so that tickets, changes and line stops refer to the same devices and events.
+> **Unlike the device sources, the business pipeline was built by the same author as this
+> generator**, so its evaluation checks consistency rather than being a blind test.
+
+## Source 4 — Service desk incidents
+
+`raw/itsm/servicedesk_incidents_20261026.csv`
+
+- **What:** Incident export from the service desk tool, taken 26 Oct 2026.
+- **Grain:** one row per incident, but reassigned incidents can appear more than once; keep the row with the latest `sys_updated_on`.
+- **Format:** CSV, UTF-8 with BOM. Timestamps in SAST, in more than one layout.
+- **Key fields:** `number`; `cmdb_ci` (hostname, often messy or blank); `parent_incident` (child tickets of a major incident); `problem_id`; `caused_by_change`.
+
+| Column | Meaning |
+|---|---|
+| opened_at, first_response_at, resolved_at, closed_at | Lifecycle timestamps (first response = acknowledged) |
+| state, priority, category | Free-text drift, e.g. `P2` / `2 - High` / `High` |
+| short_description, caller_id | Free text and people's names. **Sensitive: must not leave Silver.** |
+| location | Plant, typed by hand |
+| assignment_group | Resolver team |
+| close_code, reopen_count | Outcome and number of reopens |
+
+## Source 5 — Change requests and group membership
+
+`raw/change/change_requests_20261026.csv` and `raw/intune/group_membership_20261026.csv`
+
+- **What:** CAB change records (Intune policies and app deployments, Windows updates, network), and an export of the Entra/Intune groups those changes target.
+- **Grain:** one row per change; one row per group member.
+- **Join:** `assignment_target` (group name, typed with drift) → `group_membership.group_name` → `member_name` (hostname). `SITE-DBN` is a site scope listing every Durban device.
+- Planned vs actual start/end. Cancelled changes have no actual dates; one change was rolled back, and one is scheduled after the data window.
+
+## Source 6 — MES production lines and line stops
+
+`raw/mes/production_lines.csv`, `raw/mes/line_terminals.csv`, `raw/mes/line_downtime_events.csv`
+
+- **What:** The MES line master, the station → terminal map, and the line stop log.
+- **Plants** are MES codes: `P01` Rosslyn, `P02` Gqeberha, `P03` Durban. `site_name` is typed by hand.
+- **Stops** are recorded by line and station. `line_terminals.csv` maps a station to its terminal hostname and says whether the station is **line-critical**: only a fault on a critical station stops the line.
+- **Reason codes:**
+  - IT: `IT-APP` (MES client), `IT-TERM` (station PC);
+  - non-IT: `MAT` material, `MECH` mechanical, `QUAL` quality, `CHGOVR` changeover, `UTIL` utilities;
+  - `OTHER`, which operators sometimes use for IT stops (see the comment).
+- **Times** are local (SAST). `duration_min` is typed by the operator; start and end are system-recorded.
+
+## Source 7 — Remediation register
+
+`raw/remediation/remediation_register.csv`
+
+- **What:** IT problem management's action tracker: what was done, for which problem, through which change, and whether anyone verified it.
+- Like the rollout tracker, it is **a claim to verify**. Status and `verified` are typed by hand; `linked_change` is sometimes missing.
+
+## Cost assumptions
+
+`metrics/cost_assumptions.yaml` (added with the business pipeline) holds **illustrative** finance inputs in South African rand: margin per line-minute, the share of lost output recovered by overtime, loaded hourly rates, and cost per ticket. They are invented for the case study, shown as low/high ranges, and meant to be replaced by finance.
+
+## How all the sources relate
+
+```
+                     ┌──(Azure AD Device ID)──► Telemetry events
+Intune inventory ────┼──(Hostname)──► Plant IT rollout tracker
+   (device key)      ├──(Hostname)──► Group membership ◄──(group)── Change requests ◄── Remediation register
+                     ├──(Hostname = cmdb_ci)──► Service desk incidents ──(problem / change)──┘
+                     └──(Hostname = terminal)──► MES line terminals ◄──(line + station)── MES line stops
+```
+
+## Business questions this data supports
+
+6. What do device problems cost in production downtime, lost working time and support effort?
+7. Which logged changes preceded a shift in device health, tickets or line stops, for the devices they targeted?
+8. Do ticket influxes line up with telemetry, and what does telemetry see that tickets do not (and the reverse)?
+9. How quickly are incidents acknowledged and resolved, by priority and category?
+10. Which remediations were actually implemented, and did they change the metrics they were meant to fix?

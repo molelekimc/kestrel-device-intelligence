@@ -1,0 +1,212 @@
+# Governed metric definitions for the Kestrel fleet Gold layer.
+# Read by pipeline/gold.py (to build KPIs, warnings and breaches) and by the MCP
+# server (to validate requests and attach definitions to every answer).
+# Expressions are DuckDB SQL over the base aggregates listed under `aggregates`.
+
+version: 1
+min_group_devices: 10          # any group with fewer distinct devices is suppressed
+
+grain_note: >
+  The base grain is device-week (ISO week on the SAST calendar, Monday-Sunday).
+  Multi-week periods sum device-weeks, so rates stay "per 1,000 device-weeks"
+  and coverage is device-weeks reporting / device-weeks active.
+
+dimensions:
+  plant:        {column: plant_code,   label: Plant (ROS Rosslyn, GQB Gqeberha, DBN Durban)}
+  device_class: {column: device_class, label: Device class (OF office, EN engineering, SF shop-floor)}
+  model:        {column: model,        label: Hardware model (standardised)}
+  os_release:   {column: os_release,   label: Windows release the device was on that week}
+
+aggregates:   # computed by pipeline/metrics.py; listed here so definitions are self-contained
+  intune_active_device_weeks: device-weeks where the device was enrolled and had checked in to Intune on or after the week start
+  reporting_device_weeks: device-weeks with at least one valid telemetry event
+  covered_device_weeks: device-weeks both Intune-active and reporting
+  devices_active: distinct Intune-active devices in the period
+  devices_reporting: distinct reporting devices in the period
+  startups / app_crashes / bugchecks: event counts after dedupe and quarantine
+  boot_samples / logon_samples: startups with a valid (0-600 s) duration
+
+metrics:
+  startup_count:
+    label: Startups
+    expression: startups
+    unit: startups
+    grain: device-week, summed
+    device_count: devices_reporting
+    direction: neutral
+    caveats:
+      - Counts depend on how many devices report; read alongside coverage.
+
+  boot_time_p50:
+    label: Median boot time
+    expression: boot_p50
+    unit: seconds
+    grain: startup event
+    device_count: devices_reporting
+    direction: lower_is_better
+    caveats:
+      - Boot durations <=0 s, >600 s or the 99999 sentinel are excluded (quarantined).
+      - Agent 2.3 reported milliseconds and 2.4 seconds; both are converted to seconds.
+  boot_time_p90:
+    label: P90 boot time
+    expression: boot_p90
+    unit: seconds
+    grain: startup event
+    device_count: devices_reporting
+    direction: lower_is_better
+    caveats:
+      - Same exclusions as boot_time_p50.
+
+  logon_time_p50:
+    label: Median logon time
+    expression: logon_p50
+    unit: seconds
+    grain: startup event with a logon
+    device_count: devices_reporting
+    direction: lower_is_better
+    caveats:
+      - Shop-floor kiosks with auto-logon report no logon duration (expected), so shop-floor logon figures cover only devices with interactive logon.
+      - A change in which devices report (cohort mix) moves this metric without any device getting faster or slower.
+  logon_time_p90:
+    label: P90 logon time
+    expression: logon_p90
+    unit: seconds
+    grain: startup event with a logon
+    device_count: devices_reporting
+    direction: lower_is_better
+    caveats:
+      - Same exclusions as logon_time_p50.
+
+  app_crash_rate:
+    label: App crashes per 1,000 reporting device-weeks
+    expression: 1000.0 * app_crashes / nullif(reporting_device_weeks, 0)
+    unit: crashes per 1,000 device-weeks
+    grain: device-week
+    device_count: devices_reporting
+    direction: lower_is_better
+    caveats:
+      - Denominator is devices that reported telemetry, not all Intune devices; outages lower volume but not the rate.
+  bsod_rate:
+    label: Blue screens per 1,000 reporting device-weeks
+    expression: 1000.0 * bugchecks / nullif(reporting_device_weeks, 0)
+    unit: bug checks per 1,000 device-weeks
+    grain: device-week
+    device_count: devices_reporting
+    direction: lower_is_better
+    caveats:
+      - Blue screens are rare; small slices swing on a handful of events. Check the event count, not just the rate.
+      - Denominator is reporting devices, as for app_crash_rate.
+
+  coverage:
+    label: Telemetry coverage
+    expression: covered_device_weeks / nullif(intune_active_device_weeks, 0)
+    unit: share (0-1)
+    grain: device-week
+    device_count: devices_active
+    direction: higher_is_better
+    caveats:
+      - Intune-active is inferred from a single inventory snapshot (enrolment date and last check-in), not a daily history.
+      - Orphan telemetry (device ids not in Intune) is excluded from both sides.
+
+warning_rules:
+  low_coverage:        {threshold: 0.85, severity: warning}
+  critical_coverage:   {threshold: 0.60, severity: critical}
+  coverage_drop:       {threshold_pts: 0.10, severity: warning}    # vs previous week
+  outage_day:          {threshold: 0.50, severity: critical}       # weekday reporting devices below this share of the slice's median weekday
+  cohort_mix_shift:    {threshold_pts: 0.05, severity: warning}    # LTSC share of reporting devices vs previous week
+  agent_schema_mix:    {severity: info}
+  resend_applied:      {severity: info}
+  impossible_durations: {threshold: 0.005, severity: info}          # share of startups
+
+# Week-over-week breach rules, evaluated per single-dimension slice.
+thresholds:
+  bsod_rate:       {pct_change: 0.50, min_events: 5}
+  app_crash_rate:  {pct_change: 0.25, min_events: 20}
+  boot_time_p90:   {pct_change: 0.15}
+  logon_time_p50:  {pct_change: 0.15}
+  coverage:        {abs_change: -0.10}
+
+# ----------------------------------------------------------------------------- business layer (Phase 6)
+business:
+  sla_resolve_minutes: {1: 240, 2: 480, 3: 4320, 4: 7200}   # P1 4 h, P2 8 h, P3 3 days, P4 5 days
+  min_group_events: 10          # ticket and line-stop groups smaller than this are suppressed
+  change_impact:
+    pre_weeks: 2                # ISO weeks before the change week
+    post_weeks: 2               # the change week and the week after
+    strong_rel: 0.50            # relative change in the scoped devices
+    moderate_rel: 0.25
+    specificity: 3.0            # scoped change must exceed the comparison group's by this factor
+    min_scope_devices: 30
+    min_events: 20
+    metric_thresholds:           # coverage is a share near 1, so smaller relative moves matter
+      coverage: {moderate_rel: 0.10, strong_rel: 0.25}
+    coverage_days_before: 14     # coverage is measured on days, so a break and its fix in one week separate
+    coverage_days_after: 7
+    # Metrics a change of each type could plausibly move (analyst knowledge). Only these are
+    # used to summarise a change; every metric is still stored.
+    metrics_by_category:
+      "Intune - App deployment": [app_crash_rate, tickets_per_1k, it_downtime_per_100, coverage]
+      "Intune - Feature update": [bsod_rate, boot_time_p50, app_crash_rate, it_downtime_per_100]
+      "Intune - Update ring": [bsod_rate, app_crash_rate, it_downtime_per_100]
+      "Intune - Driver update": [bsod_rate, it_downtime_per_100]
+      "Network": [coverage, tickets_per_1k]
+      "Defender": [app_crash_rate, tickets_per_1k]
+      default: [app_crash_rate, bsod_rate, tickets_per_1k]
+    keyword_metrics:             # description keyword (lower case) overrides the category list
+      "reliability agent": [coverage]
+      "telemetry": [coverage]
+  remediation:
+    effective_rel: 0.30         # improvement in the intended direction, relative to before
+    no_effect_rel: 0.10         # smaller than this either way: no detectable effect
+
+business_metrics:
+  tickets_opened:
+    label: Incidents opened
+    unit: tickets
+    grain: incident
+    caveats:
+      - Child tickets of a major incident are counted; they are closed together with the parent.
+      - Tickets reflect what people report, not device health; silent failures produce no tickets.
+  tickets_per_1k_devices:
+    label: Incidents per 1,000 Intune-active devices per week
+    unit: tickets per 1,000 devices
+    grain: incident / device-week
+    caveats:
+      - Tickets without a device are attributed to a plant by location and count only in plant or fleet totals.
+  mtta_p50:
+    label: Median time to acknowledge
+    unit: minutes
+    grain: incident
+    caveats: [Calendar time, not business hours.]
+  mttr_p50:
+    label: Median time to resolve
+    unit: hours
+    grain: incident (excluding major-incident children)
+    caveats:
+      - Excludes child tickets (closed with their parent) and tickets with a resolution time before they were opened.
+      - Calendar time, not business hours. Open tickets are not included.
+  sla_breach_rate:
+    label: Share of resolved incidents that missed the resolution SLA
+    unit: share (0-1)
+    grain: incident (excluding major-incident children)
+    caveats: [SLA targets by priority are in business.sla_resolve_minutes.]
+  downtime_minutes:
+    label: Unplanned line stop minutes
+    unit: minutes
+    grain: line stop
+    caveats:
+      - From the MES stop log; duplicates removed and system start/end used rather than typed durations.
+  it_downtime_share:
+    label: Share of line stop minutes with an IT cause
+    unit: share (0-1)
+    grain: line stop
+    caveats:
+      - IT includes OTHER stops whose operator comment names a PC, screen, reboot or MES fault.
+  cost:
+    label: Estimated cost of IT-caused disruption
+    unit: ZAR (low-high range)
+    grain: week x plant x cost type
+    caveats:
+      - Uses illustrative assumptions in metrics/cost_assumptions.yaml, not Kestrel finance figures.
+      - Workforce cost counts office and engineering devices only; shop-floor impact is counted once, as line downtime.
+      - Workforce cost uses telemetry, so devices that stopped reporting are under-counted.

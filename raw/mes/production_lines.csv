@@ -1,0 +1,53 @@
+line_id,mes_plant,site_name,product_family,standard_units_per_hour,shift_pattern
+P01-BIW-L01,P01,KAG Rosslyn,BIW,30,3x8
+P01-PAINT-L01,P01,Rosslyn Assembly,PAINT,36,3x8
+P01-TRIM-L01,P01,Rosslyn Assembly,TRIM,24,3x8
+P01-FINAL-L01,P01,Rosslyn Assembly,FINAL,30,3x8
+P01-BIW-L02,P01,Rosslyn Assembly,BIW,30,3x8
+P01-PAINT-L02,P01,Rosslyn Assembly,PAINT,60,3x8
+P01-TRIM-L02,P01,Rosslyn,TRIM,24,2x8
+P01-FINAL-L02,P01,Rosslyn Assembly,FINAL,48,3x8
+P01-BIW-L03,P01,Rosslyn Assembly,BIW,42,3x8
+P01-PAINT-L03,P01,Rosslyn Assembly,PAINT,48,3x8
+P01-TRIM-L03,P01,Rosslyn Assembly,TRIM,24,3x8
+P01-FINAL-L03,P01,Rosslyn Assembly,FINAL,60,3x8
+P01-BIW-L04,P01,Rosslyn Assembly,BIW,42,2x8
+P01-PAINT-L04,P01,Rosslyn Assembly,PAINT,48,3x8
+P01-TRIM-L04,P01,Rosslyn,TRIM,48,3x8
+P01-FINAL-L04,P01,Rosslyn,FINAL,60,3x8
+P01-BIW-L05,P01,Rosslyn Assembly,BIW,42,3x8
+P01-PAINT-L05,P01,Rosslyn Assembly,PAINT,30,3x8
+P01-TRIM-L05,P01,Rosslyn Assembly,TRIM,24,3x8
+P01-FINAL-L05,P01,KAG Rosslyn,FINAL,24,3x8
+P01-BIW-L06,P01,Rosslyn,BIW,36,2x8
+P01-PAINT-L06,P01,Rosslyn Assembly,PAINT,42,2x8
+P01-TRIM-L06,P01,Rosslyn,TRIM,42,2x8
+P01-FINAL-L06,P01,Rosslyn Assembly,FINAL,48,2x8
+P02-AXLE-L01,P02,PE,AXLE,42,3x8
+P02-EXH-L01,P02,PE Components,EXH,36,2x8
+P02-MACH-L01,P02,PE Components,MACH,48,3x8
+P02-AXLE-L02,P02,PE Components,AXLE,60,2x8
+P02-EXH-L02,P02,PE Components,EXH,60,3x8
+P02-MACH-L02,P02,PE Components,MACH,24,3x8
+P02-AXLE-L03,P02,PE Components,AXLE,48,2x8
+P02-EXH-L03,P02,PE Components,EXH,30,2x8
+P02-MACH-L03,P02,PE Components,MACH,24,3x8
+P02-AXLE-L04,P02,PE Components,AXLE,30,2x8
+P02-EXH-L04,P02,PE Components,EXH,48,3x8
+P02-MACH-L04,P02,PE Components,MACH,48,3x8
+P02-AXLE-L05,P02,PE Components,AXLE,48,2x8
+P02-EXH-L05,P02,PE Components,EXH,24,3x8
+P02-MACH-L05,P02,PE Components,MACH,24,3x8
+P02-AXLE-L06,P02,PE Components,AXLE,60,3x8
+P02-EXH-L06,P02,PE Components,EXH,30,3x8
+P02-MACH-L06,P02,PE Components,MACH,30,2x8
+P03-SEAT-L01,P03,Durban - Prospecton,SEAT,36,2x8
+P03-HARN-L01,P03,Prospecton Seating,HARN,42,3x8
+P03-SEAT-L02,P03,Prospecton Seating,SEAT,36,2x8
+P03-HARN-L02,P03,Durban - Prospecton,HARN,36,3x8
+P03-SEAT-L03,P03,Durban - Prospecton,SEAT,36,3x8
+P03-HARN-L03,P03,Prospecton Seating,HARN,30,3x8
+P03-SEAT-L04,P03,Durban - Prospecton,SEAT,36,3x8
+P03-HARN-L04,P03,Prospecton Seating,HARN,48,3x8
+P03-SEAT-L05,P03,Prospecton Seating,SEAT,30,3x8
+P03-HARN-L05,P03,Prospecton Seating,HARN,42,2x8

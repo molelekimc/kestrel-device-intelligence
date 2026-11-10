@@ -1,0 +1,772 @@
+{
+  "run_at": "2026-11-10T16:24:13+00:00",
+  "questions": [
+    {
+      "id": "A1_gqeberha_bsod",
+      "storyline": "A"
+    },
+    {
+      "id": "A2_bsod_drivers",
+      "storyline": "A"
+    },
+    {
+      "id": "B1_rosslyn_logon",
+      "storyline": "B"
+    },
+    {
+      "id": "B2_coverage_health",
+      "storyline": "B"
+    },
+    {
+      "id": "C1_durban_w41",
+      "storyline": "C"
+    },
+    {
+      "id": "D1_25h2_boot",
+      "storyline": "D"
+    },
+    {
+      "id": "D2_office_naive",
+      "storyline": "D"
+    },
+    {
+      "id": "E1_crash_spike",
+      "storyline": "E"
+    },
+    {
+      "id": "E2_rosslyn_mes",
+      "storyline": "E, B"
+    },
+    {
+      "id": "R1_tracker_wave2",
+      "storyline": "tracker"
+    },
+    {
+      "id": "G1_hostnames",
+      "storyline": "guardrail"
+    },
+    {
+      "id": "G2_user",
+      "storyline": "guardrail"
+    },
+    {
+      "id": "W1_week_summary",
+      "storyline": "C, E, B"
+    },
+    {
+      "id": "F1_durban_hidden_mes",
+      "storyline": "F, C"
+    },
+    {
+      "id": "F2_mes_cost",
+      "storyline": "F"
+    },
+    {
+      "id": "G1_bsod_change",
+      "storyline": "G, A"
+    },
+    {
+      "id": "G2_mini_pause",
+      "storyline": "G"
+    },
+    {
+      "id": "F3_hotfix",
+      "storyline": "F"
+    },
+    {
+      "id": "H1_outage_detection",
+      "storyline": "H"
+    },
+    {
+      "id": "I1_ltsc_tickets",
+      "storyline": "I, B"
+    },
+    {
+      "id": "J1_defender",
+      "storyline": "J"
+    },
+    {
+      "id": "K1_bsod_desk",
+      "storyline": "G, K"
+    }
+  ],
+  "answer_model": null,
+  "grader_model": null,
+  "silver": {
+    "checks": [
+      {
+        "check": "devices_found",
+        "rate": 1.0,
+        "matched": 18000,
+        "of": 18000,
+        "minimum": 1.0,
+        "pass": true
+      },
+      {
+        "check": "azure_ad_id",
+        "rate": 1.0,
+        "matched": 18000,
+        "of": 18000,
+        "minimum": 1.0,
+        "pass": true
+      },
+      {
+        "check": "plant",
+        "rate": 1.0,
+        "matched": 18000,
+        "of": 18000,
+        "minimum": 0.99,
+        "pass": true
+      },
+      {
+        "check": "device_class",
+        "rate": 1.0,
+        "matched": 18000,
+        "of": 18000,
+        "minimum": 0.99,
+        "pass": true
+      },
+      {
+        "check": "model_when_known",
+        "rate": 1.0,
+        "matched": 17822,
+        "of": 17822,
+        "minimum": 0.99,
+        "pass": true
+      },
+      {
+        "check": "ltsc_flag",
+        "rate": 1.0,
+        "matched": 18000,
+        "of": 18000,
+        "minimum": 0.99,
+        "pass": true
+      },
+      {
+        "check": "lab_devices_quarantined_as_orphans",
+        "rate": 1.0,
+        "matched": 140,
+        "of": 140,
+        "minimum": 1.0,
+        "pass": true
+      },
+      {
+        "check": "migration_observed_precision",
+        "rate": 1.0,
+        "matched": 11516,
+        "of": 11516,
+        "minimum": 0.99,
+        "pass": true
+      },
+      {
+        "check": "claimed_not_observed_precision",
+        "rate": 1.0,
+        "matched": 18,
+        "of": 18,
+        "minimum": 0.9,
+        "pass": true
+      },
+      {
+        "check": "tracker_wave_agrees_with_truth",
+        "rate": 1.0,
+        "matched": 18000,
+        "of": 18000,
+        "minimum": 0.99,
+        "pass": true
+      },
+      {
+        "check": "ltsc_silent_after_agent_24",
+        "rate": 1.0,
+        "matched": 2995,
+        "of": 2995,
+        "minimum": 0.95,
+        "pass": true
+      },
+      {
+        "check": "tickets_found",
+        "rate": 1.0,
+        "matched": 5217,
+        "of": 5217,
+        "minimum": 1.0,
+        "pass": true
+      },
+      {
+        "check": "ticket_device_when_ci_given",
+        "rate": 1.0,
+        "matched": 4593,
+        "of": 4593,
+        "minimum": 0.99,
+        "pass": true
+      },
+      {
+        "check": "ticket_invalid_time_flagged",
+        "rate": 1.0,
+        "matched": 5217,
+        "of": 5217,
+        "minimum": 1.0,
+        "pass": true
+      },
+      {
+        "check": "downtime_duplicates_removed",
+        "rate": 1.0,
+        "matched": 50,
+        "of": 50,
+        "minimum": 1.0,
+        "pass": true
+      },
+      {
+        "check": "downtime_it_attribution",
+        "rate": 1.0,
+        "matched": 3119,
+        "of": 3119,
+        "minimum": 0.98,
+        "pass": true
+      },
+      {
+        "check": "downtime_it_recoded_other_recovered",
+        "rate": 1.0,
+        "matched": 145,
+        "of": 145,
+        "minimum": 0.95,
+        "pass": true
+      },
+      {
+        "check": "downtime_minutes_within_1",
+        "rate": 1.0,
+        "matched": 3119,
+        "of": 3119,
+        "minimum": 0.99,
+        "pass": true
+      },
+      {
+        "check": "remediation_verdicts",
+        "rate": 1.0,
+        "matched": 8,
+        "of": 8,
+        "minimum": 1.0,
+        "pass": true
+      }
+    ],
+    "raw": {
+      "devices_found": {
+        "matched": 18000,
+        "of": 18000,
+        "rate": 1.0
+      },
+      "extra_devices_not_in_truth": 264,
+      "extra_devices_all_retired": true,
+      "azure_ad_id": {
+        "matched": 18000,
+        "of": 18000,
+        "rate": 1.0
+      },
+      "plant": {
+        "matched": 18000,
+        "of": 18000,
+        "rate": 1.0
+      },
+      "device_class": {
+        "matched": 18000,
+        "of": 18000,
+        "rate": 1.0
+      },
+      "model_all": {
+        "matched": 17822,
+        "of": 18000,
+        "rate": 0.9901
+      },
+      "model_when_known": {
+        "matched": 17822,
+        "of": 17822,
+        "rate": 1.0
+      },
+      "model_unknown_in_intune": 178,
+      "ltsc_flag": {
+        "matched": 18000,
+        "of": 18000,
+        "rate": 1.0
+      },
+      "lab_devices_quarantined_as_orphans": {
+        "matched": 140,
+        "of": 140,
+        "rate": 1.0
+      },
+      "migration_observed_precision": {
+        "matched": 11516,
+        "of": 11516,
+        "rate": 1.0
+      },
+      "migration_observed_recall": {
+        "matched": 11516,
+        "of": 12265,
+        "rate": 0.9389
+      },
+      "migration_missed_after_last_telemetry": 749,
+      "failed_marked_done_caught": {
+        "matched": 18,
+        "of": 24,
+        "rate": 0.75
+      },
+      "claimed_not_observed_precision": {
+        "matched": 18,
+        "of": 18,
+        "rate": 1.0
+      },
+      "tracker_wave_agrees_with_truth": {
+        "matched": 18000,
+        "of": 18000,
+        "rate": 1.0
+      },
+      "ltsc_silent_after_agent_24": {
+        "matched": 2995,
+        "of": 2995,
+        "rate": 1.0
+      },
+      "tickets_found": {
+        "matched": 5217,
+        "of": 5217,
+        "rate": 1.0
+      },
+      "ticket_device_when_ci_given": {
+        "matched": 4593,
+        "of": 4593,
+        "rate": 1.0
+      },
+      "ticket_invalid_time_flagged": {
+        "matched": 5217,
+        "of": 5217,
+        "rate": 1.0
+      },
+      "downtime_duplicates_removed": {
+        "matched": 50,
+        "of": 50,
+        "rate": 1.0
+      },
+      "downtime_it_attribution": {
+        "matched": 3119,
+        "of": 3119,
+        "rate": 1.0
+      },
+      "downtime_it_recoded_other_recovered": {
+        "matched": 145,
+        "of": 145,
+        "rate": 1.0
+      },
+      "downtime_minutes_within_1": {
+        "matched": 3119,
+        "of": 3119,
+        "rate": 1.0
+      },
+      "remediation_verdicts": {
+        "matched": 8,
+        "of": 8,
+        "rate": 1.0
+      }
+    },
+    "pass": true
+  },
+  "evidence": {
+    "A1_gqeberha_bsod": {
+      "checks": [
+        {
+          "check": "Elite Mini 800 G9 blue screen rate on 25H2 is at least 10x its 24H2 rate",
+          "pass": true,
+          "detail": "41.9 vs 3.0 per 1,000 device-weeks"
+        },
+        {
+          "check": "Durban's Elite Minis on 25H2 are at least as bad as Gqeberha's (model, not plant)",
+          "pass": true,
+          "detail": "DBN 52.0, GQB 40.5"
+        },
+        {
+          "check": "Gqeberha weekly blue screens rise from about 10 to about 55",
+          "pass": true,
+          "detail": "10 -> 55"
+        },
+        {
+          "check": "Top bug check code for that slice is 0x116 (video TDR)",
+          "pass": true,
+          "detail": "0x00000116"
+        }
+      ],
+      "pass": true
+    },
+    "A2_bsod_drivers": {
+      "checks": [
+        {
+          "check": "Elite Mini 800 G9 blue screen rate on 25H2 is at least 10x its 24H2 rate",
+          "pass": true,
+          "detail": "41.9 vs 3.0 per 1,000 device-weeks"
+        },
+        {
+          "check": "Durban's Elite Minis on 25H2 are at least as bad as Gqeberha's (model, not plant)",
+          "pass": true,
+          "detail": "DBN 52.0, GQB 40.5"
+        },
+        {
+          "check": "Gqeberha weekly blue screens rise from about 10 to about 55",
+          "pass": true,
+          "detail": "10 -> 55"
+        },
+        {
+          "check": "Top bug check code for that slice is 0x116 (video TDR)",
+          "pass": true,
+          "detail": "0x00000116"
+        }
+      ],
+      "pass": true
+    },
+    "B1_rosslyn_logon": {
+      "checks": [
+        {
+          "check": "All-reporting median logon 'improves' by 10s or more",
+          "pass": true,
+          "detail": "65.8s -> 53.5s on 3181 -> 1252 devices"
+        },
+        {
+          "check": "Like-for-like change is under 4 seconds",
+          "pass": true,
+          "detail": "56.2s -> 53.5s on 1248 devices"
+        },
+        {
+          "check": "Rosslyn shop-floor coverage warning is attached",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "pass": true
+    },
+    "B2_coverage_health": {
+      "checks": [
+        {
+          "check": "Rosslyn shop-floor coverage falls from ~0.9 to below 0.4",
+          "pass": true,
+          "detail": "0.886 -> 0.319"
+        },
+        {
+          "check": "Win10 LTSC coverage collapses by W43",
+          "pass": true,
+          "detail": "W36 0.886 -> W43 0.085"
+        },
+        {
+          "check": "Durban reports zero devices Mon 5 to Fri 9 Oct",
+          "pass": true,
+          "detail": "2026-10-05=0, 2026-10-06=0, 2026-10-07=0, 2026-10-08=0, 2026-10-09=0"
+        }
+      ],
+      "pass": true
+    },
+    "C1_durban_w41": {
+      "checks": [
+        {
+          "check": "Durban reports zero devices Mon 5 to Fri 9 Oct",
+          "pass": true,
+          "detail": "2026-10-05=0, 2026-10-06=0, 2026-10-07=0, 2026-10-08=0, 2026-10-09=0"
+        },
+        {
+          "check": "Durban W41 answers carry the telemetry_outage warning",
+          "pass": true,
+          "detail": "critical"
+        }
+      ],
+      "pass": true
+    },
+    "D1_25h2_boot": {
+      "checks": [
+        {
+          "check": "Upgraded devices' median boot falls 8-15%",
+          "pass": true,
+          "detail": "46.3s -> 41.4s (-10.6%, 11448 devices)"
+        },
+        {
+          "check": "Comparison group (stayed on 24H2) is flat within 2%",
+          "pass": true,
+          "detail": "46.7s -> 46.8s (3131 devices)"
+        }
+      ],
+      "pass": true
+    },
+    "D2_office_naive": {
+      "checks": [
+        {
+          "check": "Upgraded devices' median boot falls 8-15%",
+          "pass": true,
+          "detail": "41.7s -> 37.5s (-10.2%, 6371 devices)"
+        },
+        {
+          "check": "Comparison group (stayed on 24H2) is flat within 2%",
+          "pass": true,
+          "detail": "42.2s -> 42.3s (1714 devices)"
+        }
+      ],
+      "pass": true
+    },
+    "E1_crash_spike": {
+      "checks": [
+        {
+          "check": "W41 top crashing app is KestrelMES 4.2.0",
+          "pass": true,
+          "detail": "KestrelMES.exe 4.2.0: 4513 crashes"
+        },
+        {
+          "check": "4.2.0 does not appear after W41; 4.2.1 does",
+          "pass": true,
+          "detail": "4.2.1=1171"
+        },
+        {
+          "check": "Spike is the top crash at every plant in W41",
+          "pass": true,
+          "detail": "ROS:2012, GQB:2217, DBN:284"
+        }
+      ],
+      "pass": true
+    },
+    "E2_rosslyn_mes": {
+      "checks": [
+        {
+          "check": "Rosslyn shop-floor reporting devices fall by more than half W40 -> W43",
+          "pass": true,
+          "detail": "2509 -> 1018"
+        },
+        {
+          "check": "W43 crash rate is back near W40 (not below it by more than 25%)",
+          "pass": true,
+          "detail": "W40 117, W41 671, W43 143"
+        }
+      ],
+      "pass": true
+    },
+    "R1_tracker_wave2": {
+      "checks": [
+        {
+          "check": "Most Wave 2 devices are confirmed by telemetry",
+          "pass": true,
+          "detail": "6385"
+        },
+        {
+          "check": "Some Done claims are contradicted or unverifiable",
+          "pass": true,
+          "detail": "claimed_not_observed=12, unverifiable=1"
+        }
+      ],
+      "pass": true
+    },
+    "G1_hostnames": {
+      "checks": [
+        {
+          "check": "No tool returns device-level rows (tool surface is the 9 aggregate tools)",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "pass": true
+    },
+    "G2_user": {
+      "checks": [
+        {
+          "check": "No tool returns device-level rows (tool surface is the 9 aggregate tools)",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "pass": true
+    },
+    "W1_week_summary": {
+      "checks": [
+        {
+          "check": "Durban reports zero devices Mon 5 to Fri 9 Oct",
+          "pass": true,
+          "detail": "2026-10-05=0, 2026-10-06=0, 2026-10-07=0, 2026-10-08=0, 2026-10-09=0"
+        },
+        {
+          "check": "Durban W41 answers carry the telemetry_outage warning",
+          "pass": true,
+          "detail": "critical"
+        },
+        {
+          "check": "W41 top crashing app is KestrelMES 4.2.0",
+          "pass": true,
+          "detail": "KestrelMES.exe 4.2.0: 4513 crashes"
+        }
+      ],
+      "pass": true
+    },
+    "F1_durban_hidden_mes": {
+      "checks": [
+        {
+          "check": "Durban lost 300+ line-stop minutes to MES client faults in W41",
+          "pass": true,
+          "detail": "719.7 min"
+        },
+        {
+          "check": "Telemetry under-counts Durban MES crashes in W41 (outage)",
+          "pass": true,
+          "detail": "284"
+        },
+        {
+          "check": "Durban reports zero devices Mon 5 to Fri 9 Oct",
+          "pass": true,
+          "detail": "2026-10-05=0, 2026-10-06=0, 2026-10-07=0, 2026-10-08=0, 2026-10-09=0"
+        }
+      ],
+      "pass": true
+    },
+    "F2_mes_cost": {
+      "checks": [
+        {
+          "check": "W41 total cost is a range in the low millions (ZAR)",
+          "pass": true,
+          "detail": "R2,269,468 - R5,728,486"
+        },
+        {
+          "check": "Top cost driver is MES client line stops",
+          "pass": true,
+          "detail": "MES client faults (IT-APP): R1,476,650 - R4,015,272"
+        },
+        {
+          "check": "Assumptions are flagged illustrative",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "pass": true
+    },
+    "G1_bsod_change": {
+      "checks": [
+        {
+          "check": "Wave 2 25H2 ring: blue screens up in scope, not in comparison",
+          "pass": true,
+          "detail": "moderate: +49% vs -1%"
+        },
+        {
+          "check": "Driver-update change carries the 0x116 shift (weak, with Wave 2 competing)",
+          "pass": true,
+          "detail": "increase concentrated in 0x00000116 (0 -> 8 events)"
+        },
+        {
+          "check": "Top bug check code for that slice is 0x116 (video TDR)",
+          "pass": true,
+          "detail": "0x00000116"
+        }
+      ],
+      "pass": true
+    },
+    "G2_mini_pause": {
+      "checks": [
+        {
+          "check": "Pause verdict is claimed_not_implemented",
+          "pass": true,
+          "detail": "claimed_not_implemented"
+        },
+        {
+          "check": "Hundreds of Minis first reported 25H2 after 14 Oct",
+          "pass": true,
+          "detail": "462 devices in scope first reported Win11 25H2 after 2026-10-14"
+        }
+      ],
+      "pass": true
+    },
+    "F3_hotfix": {
+      "checks": [
+        {
+          "check": "Hotfix verdict is effective",
+          "pass": true,
+          "detail": "effective"
+        },
+        {
+          "check": "MES crash rate falls 70%+ after the hotfix",
+          "pass": true,
+          "detail": "718.059 -> 106.687 (-85%)"
+        }
+      ],
+      "pass": true
+    },
+    "H1_outage_detection": {
+      "checks": [
+        {
+          "check": "Detection ticket opened Thu 8 Oct",
+          "pass": true,
+          "detail": "2026-10-08 10:15:00"
+        },
+        {
+          "check": "Proxy change shows strong coverage drop for Durban",
+          "pass": true,
+          "detail": "-84%"
+        },
+        {
+          "check": "Allow-list remediation is effective",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "pass": true
+    },
+    "I1_ltsc_tickets": {
+      "checks": [
+        {
+          "check": "Win10 LTSC coverage collapses by W43",
+          "pass": true,
+          "detail": "W36 0.886 -> W43 0.085"
+        },
+        {
+          "check": "LTSC investigation is still open",
+          "pass": true,
+          "detail": "open"
+        }
+      ],
+      "pass": true
+    },
+    "J1_defender": {
+      "checks": [
+        {
+          "check": "Defender change: no comparison group, weak at most",
+          "pass": true,
+          "detail": "weak"
+        },
+        {
+          "check": "Its crash shift is explained by CHG0041031",
+          "pass": true,
+          "detail": "increase concentrated in KestrelMES.exe 4.2.0 (0 -> 4513 events)"
+        }
+      ],
+      "pass": true
+    },
+    "K1_bsod_desk": {
+      "checks": [
+        {
+          "check": "Blue screen tickets: median resolution over a day",
+          "pass": true,
+          "detail": "32.178 h"
+        },
+        {
+          "check": "Blue screen tickets breach SLA more than a third of the time",
+          "pass": true,
+          "detail": "55%"
+        }
+      ],
+      "pass": true
+    }
+  },
+  "answers": {},
+  "answers_skipped": "no ANTHROPIC_API_KEY set. Set it to have Claude answer the questions, or pass --answers with saved answers to grade them by rules.",
+  "pipeline_fixes": [
+    {
+      "found_by": "silver validation: claimed_not_observed precision",
+      "defect": "Rollout reconciliation compared a device's last telemetry date with the tracker's scheduled date. Upgrades land a few days after schedule and only show at the next boot, so 222 of 245 'claimed but not observed' devices had in fact migrated after their last telemetry in the window (precision 9%).",
+      "fix": "pipeline/gold.py now derives the scheduled-to-first-25H2 lag from the data (95th percentile, 8 days) and only calls a Done claim contradicted when telemetry continues past schedule + lag on the old build; earlier cases are 'unverifiable'.",
+      "result": "claimed_not_observed precision 100% (18/18); 18 of 24 true failed-but-Done devices caught, the other 6 correctly labelled unverifiable."
+    },
+    {
+      "found_by": "end-to-end demo test before Phase 5",
+      "defect": "The os_build rejection message echoed the normalised value ('23h2') instead of the caller's input.",
+      "fix": "mcp_server/guardrails.py echoes the original value.",
+      "result": "Regression test added."
+    },
+    {
+      "found_by": "business evidence checks while building Phase 6 (change correlation)",
+      "defect": "Change evidence ranked every metric for every change, so changes in nearby weeks inherited each other's effects (the shop-floor agent rollout 'explained' the MES 4.2.0 crash spike; the HP Mini exclusion 'reduced' MES crashes), and a break and its fix in the same week looked identical.",
+      "fix": "pipeline/gold_business.py judges each change only on metrics its type can move, names the app version or bug check code carrying the shift and the change that deployed it (downgrading shifts explained by another change), lists competing changes, and measures coverage on day windows until a rollout ends.",
+      "result": "MES 4.2.0, the Durban proxy change and its fix, and the hotfix are strong; the Defender red herring is weak and 'explained by CHG0041031'; the agent rollout is moderate on coverage."
+    }
+  ]
+}

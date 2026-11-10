@@ -1,0 +1,20 @@
+number,type,category,short_description,assignment_target,risk,planned_start,planned_end,actual_start,actual_end,state,close_code,problem_id,requested_by
+CHG0041001,Standard,Windows quality update,September 2026 cumulative update (Patch Tuesday),grp-all-devices ,Low,2026-09-08 20:00:00,09/09/2026 00:00,2026-09-08 20:00:00,10/09/2026 20:00,Closed,Successful,,KP
+CHG0041007,Normal,Intune - Update ring,Enable driver updates in WUfB ring SF-FU-25H2 (shop floor),GRP-SF-FU-25H2-RING,Low,2026-09-15 09:00:00,15/09/2026 13:00,2026-09-15 09:30:00,2026-09-15 10:00:00,Closed,Successful,,TM
+CHG0041008,Normal,Intune - App deployment,Deploy reliability agent 2.4 - office and engineering,GRP-OF-EN,Low,14/09/2026 08:00,2026-09-14 12:00:00,14/09/2026 08:00,28/09/2026 17:00,Closed,Successful,,SN
+CHG0041010,Normal,Intune - Feature update,Windows 11 25H2 feature update - Pilot ring,grp-w11-25h2-w1 ,Low,2026-09-14 18:00:00,2026-09-14 22:00:00,2026-09-14 18:00:00,2026-09-18 18:00:00,Closed,Successful,,AN
+CHG0041015,Normal,Microsoft 365 Apps,Microsoft 365 Apps monthly enterprise channel update,GRP-OF-EN,Low,15/09/2026 20:00,16/09/2026 00:00,2026-09-16 20:00:00,2026-09-17 20:00:00,Closed,Successful,,JvdM
+CHG0041021,Normal,Intune - Feature update,Windows 11 25H2 feature update - Wave 2 ring,GRP-W11-25H2-W2,Moderate,2026-09-21 18:00:00,2026-09-21 22:00:00,21/09/2026 18:00,2026-10-03 18:00:00,Closed,Successful,,JvdM
+CHG0041024,Standard,Intune - Configuration profile,BitLocker profile: require TPM+PIN on office laptops,GRP-OF,Low,2026-09-23 08:00:00,23/09/2026 12:00,,,Cancelled,,,KP
+CHG0041026,Normal,Intune - App deployment,Deploy reliability agent 2.4 - shop floor terminals,GRP-ALL-SF,Low,2026-09-28 08:00:00,2026-09-28 12:00:00,2026-09-28 08:00:00,2026-10-15 17:00:00,Closed,Successful,,SN
+CHG0041027,Standard,Intune - Proactive remediation,Teams cache clean-up script (weekly),GRP-OF,Moderate,2026-09-28 07:00:00,2026-09-28 11:00:00,2026-09-28 07:00:00,2026-09-28 08:00:00,Closed,Successful,,JvdM
+CHG0041030,Normal,Network,Durban internet breakout migration to new proxy cluster,SITE-DBN,Low,2026-10-05 05:30:00,2026-10-05 09:30:00,2026-10-05 05:30:00,2026-10-05 07:00:00,Closed,Successful,,TM
+CHG0041031,Standard,Intune - App deployment,Deploy KestrelMES client 4.2.0,grp-mes-users ,Low,2026-10-05 05:00:00,2026-10-05 09:00:00,2026-10-05 05:00:00,05/10/2026 09:00,Closed,Successful,,JvdM
+CHG0041033,Normal,Defender,Defender ASR rule 'Block Office child processes' audit -> block,grp-all-devices ,Moderate,06/10/2026 09:00,2026-10-06 13:00:00,06/10/2026 09:00,06/10/2026 11:00,Closed,Successful,,JvdM
+CHG0041035,Normal,Intune - Feature update,Windows 11 25H2 feature update - Wave 3 ring,grp-w11-25h2-w3 ,Low,2026-10-08 18:00:00,2026-10-08 22:00:00,2026-10-08 18:00:00,24/10/2026 18:00,Closed,Successful,,JvdM
+CHG0041038,Emergency,Network,Add telemetry ingestion endpoint to Durban proxy allow-list,SITE-DBN,Low,2026-10-09 16:00:00,2026-10-09 20:00:00,09/10/2026 16:40,2026-10-09 17:00:00,Closed,Successful,PRB0040003,TM
+CHG0041039,Emergency,Intune - App deployment,Deploy KestrelMES client 4.2.1 hotfix,GRP-MES-USERS,High,2026-10-12 05:00:00,2026-10-12 09:00:00,2026-10-12 05:00:00,2026-10-12 08:00:00,Closed,Successful,PRB0040002,AN
+CHG0041040,Normal,Browser,Google Chrome 141 update,GRP-OF-EN,Moderate,12/10/2026 20:00,2026-10-13 00:00:00,2026-10-12 20:00:00,13/10/2026 09:00,Closed,Rolled back,,TM
+CHG0041041,Standard,Windows quality update,October 2026 cumulative update (Patch Tuesday),GRP-ALL-DEVICES,Low,2026-10-13 20:00:00,14/10/2026 00:00,2026-10-13 20:00:00,2026-10-15 20:00:00,Closed,Successful,,TM
+CHG0041044,Normal,Intune - Update ring,Exclude HP Elite Mini 800 G9 from Windows 11 25H2 (ring SF-W2),GRP-HPMINI-EXCL,Low,2026-10-14 10:00:00,2026-10-14 14:00:00,2026-10-14 10:00:00,2026-10-14 11:00:00,Closed,Successful,PRB0040001,TM
+CHG0041048,Normal,Intune - Driver update,Pilot Intel graphics driver 31.0.101.5590 on HP Elite Mini (GQB L03),GRP-HPMINI-PILOT-GQB-L03,Low,2026-10-26 09:00:00,2026-10-26 13:00:00,,,Scheduled,,PRB0040001,AN

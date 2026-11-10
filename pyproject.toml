@@ -1,0 +1,27 @@
+[project]
+name = "kestrel-device-intelligence"
+version = "0.1.0"
+description = "Ample Roots Digital case study 01: governed fleet reliability metrics for a fictional client"
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb>=1.1",
+    "pyyaml>=6.0",
+    "mcp>=2.0",
+    "anthropic>=0.40",
+]
+
+[project.scripts]
+kestrel-mcp = "mcp_server.server:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["pipeline*", "mcp_server*", "automation*", "evals*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

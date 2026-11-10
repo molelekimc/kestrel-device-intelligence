@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "kestrel-fleet": {
+      "command": "/ABSOLUTE/PATH/TO/kestrel-device-intelligence/.venv/bin/kestrel-mcp",
+      "args": [],
+      "env": {
+        "KESTREL_DB": "/ABSOLUTE/PATH/TO/kestrel-device-intelligence/kestrel.duckdb",
+        "KESTREL_AUDIT_LOG": "/ABSOLUTE/PATH/TO/kestrel-device-intelligence/logs/mcp_audit.jsonl"
+      }
+    }
+  }
+}
