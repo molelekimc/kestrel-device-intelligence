@@ -1,7 +1,9 @@
-import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
+import { BrowserRouter, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { FreshnessBar } from "./components/FreshnessBar";
 import { LiveProvider, useLive } from "./live";
 import Ask from "./pages/Ask";
+import ControlRoom from "./pages/ControlRoom";
+import TV from "./pages/TV";
 import DataTrust from "./pages/DataTrust";
 import Overview from "./pages/Overview";
 import Remediation from "./pages/Remediation";
@@ -9,7 +11,7 @@ import ServiceDesk from "./pages/ServiceDesk";
 import Why from "./pages/Why";
 
 const NAV = [
-  ["/", "Overview"], ["/why", "Why"], ["/remediation", "What's being done"],
+  ["/", "Control room"], ["/detail", "Detail"], ["/why", "Why"], ["/remediation", "What's being done"],
   ["/service-desk", "Service desk"], ["/data", "Data trust"], ["/ask", "Ask the fleet"],
 ] as const;
 
@@ -27,6 +29,10 @@ function WeekPicker() {
 }
 
 function Shell() {
+  // The control room is a full-screen view with its own header; the detail pages share this shell.
+  const path = useLocation().pathname;
+  if (path === "/") return <ControlRoom />;
+  if (path === "/tv") return <TV />;
   return (
     <div className="app">
       <header className="top">
@@ -45,7 +51,7 @@ function Shell() {
       <FreshnessBar />
       <main>
         <Routes>
-          <Route path="/" element={<Overview />} />
+          <Route path="/detail" element={<Overview />} />
           <Route path="/why" element={<Why />} />
           <Route path="/remediation" element={<Remediation />} />
           <Route path="/service-desk" element={<ServiceDesk />} />

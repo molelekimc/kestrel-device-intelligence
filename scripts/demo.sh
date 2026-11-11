@@ -34,5 +34,6 @@ WATCHER=$!
 REPLAY=$!
 trap 'kill $WATCHER $REPLAY 2>/dev/null || true' EXIT INT TERM
 
-echo "Live demo running: http://127.0.0.1:8000  (logs: $RUN/watcher.log, $RUN/replay.log; Ctrl+C to stop)"
+echo "Live demo running: control room http://127.0.0.1:8000 · TV mode http://127.0.0.1:8000/tv"
+echo "(logs: $RUN/watcher.log, $RUN/replay.log; Ctrl+C to stop)"
 "$APP"

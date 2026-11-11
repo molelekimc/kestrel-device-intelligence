@@ -670,6 +670,90 @@ class FleetTools:
                    "actions in date order. Ticket text and people are never shown."])
 
 
+    # ================================================================== control room (Phase 8)
+
+    def _band(self, share) -> str | None:
+        if share is None:
+            return None
+        bands = self.defs["floor"]["it_share_bands"]
+        return "hurting" if share >= bands["hurting"] else "watch" if share >= bands["watch"] else "normal"
+
+    @audited
+    def get_floor_status(self, week: str | None = None, plant: str | None = None) -> dict:
+        """One week on the plant floor: production areas, device states, fixes and incidents."""
+        from pipeline.reference import PLANTS
+        w = self.v.week(week, self.v.weeks[-1])
+        p = self.v.plant(plant)
+        fl = self.defs["floor"]
+        end = str(self.v.week_dates[w][1])
+
+        # Production areas: every area is listed (lines with no stops still exist); line stops come
+        # from the MES stop log, so an area's picture holds even when telemetry is down.
+        areas = self._q("""
+            SELECT l.plant_code, l.product_family AS area_code, count(DISTINCT l.line_id) AS lines,
+                   count(d.event_id) AS stops, count(d.event_id) FILTER (WHERE d.is_it) AS it_stops,
+                   round(coalesce(sum(d.minutes), 0), 1) AS downtime_minutes,
+                   round(coalesce(sum(d.minutes) FILTER (WHERE d.is_it), 0), 1) AS it_minutes,
+                   round(coalesce(sum(d.minutes) FILTER (WHERE d.it_type = 'IT-APP'), 0), 1) AS it_app_minutes,
+                   coalesce(sum(d.minutes) FILTER (WHERE d.is_it), 0) / nullif(sum(d.minutes), 0) AS it_downtime_share
+            FROM silver_line l
+            LEFT JOIN gold_downtime_fact d ON d.line_id = l.line_id AND d.iso_week = ?
+            WHERE ? IS NULL OR l.plant_code = ?
+            GROUP BY ALL ORDER BY l.plant_code, l.product_family""", [w, p, p])
+        areas, sup = self._suppress_counts(areas, "stops", ("plant_code", "area_code", "lines"))
+        for a in areas:
+            a["area"] = fl["areas"].get(a["area_code"], a["area_code"])
+            a["plant_name"] = PLANTS[a["plant_code"]]
+            a["band"] = None if a.get("suppressed") else self._band(a["it_downtime_share"])
+            a["plant"] = a.pop("plant_code")
+
+        # Device states per plant (telemetry): healthy, had a crash or blue screen, or silent.
+        devices = self._q("""
+            SELECT plant_code, count(*) AS in_use,
+                   count(*) FILTER (WHERE reporting AND coalesce(app_crashes, 0) = 0 AND coalesce(bugchecks, 0) = 0) AS healthy,
+                   count(*) FILTER (WHERE reporting AND (coalesce(app_crashes, 0) > 0 OR coalesce(bugchecks, 0) > 0)) AS having_problems,
+                   count(*) FILTER (WHERE NOT reporting) AS silent
+            FROM gold_device_week WHERE iso_week = ? AND intune_active AND (? IS NULL OR plant_code = ?)
+            GROUP BY plant_code ORDER BY plant_code""", [w, p, p])
+        dsup = 0
+        for d in devices:
+            d["plant"] = d.pop("plant_code")
+            if d["in_use"] < self.min_devices:
+                d.update(in_use=f"<{self.min_devices}", healthy=None, having_problems=None, silent=None, suppressed=True)
+                dsup += 1
+        shown = [d for d in devices if not d.get("suppressed")]
+        device_total = {k: sum(d[k] for d in shown) for k in ("in_use", "healthy", "having_problems", "silent")}
+
+        # Fixes (remediation register, as of the end of the week) and incidents opened that week.
+        fixes = self._q("""
+            SELECT count(*) AS planned,
+                   count(*) FILTER (WHERE status = 'Done' AND actioned_on <= CAST(? AS DATE)) AS done,
+                   count(*) FILTER (WHERE verdict = 'effective' AND actioned_on <= CAST(? AS DATE)) AS proven_effective
+            FROM gold_remediation_effect""", [end, end])[0]
+        tickets = self._q("""
+            SELECT count(*) AS opened, count(*) FILTER (WHERE resolved_at IS NOT NULL) AS resolved
+            FROM gold_ticket_fact WHERE iso_week = ? AND (? IS NULL OR plant_code = ?)""", [w, p, p])[0]
+        tickets, s3 = self._suppress_counts([tickets], "opened", ())
+
+        f = {"plant_code": p} if p else {}
+        return self._envelope(
+            period=self._period(w, w), filters=f, rows=areas, suppressed=sup + dsup + s3,
+            devices_by_plant=devices, devices_total=device_total, fixes=fixes, incidents=tickets[0],
+            bands=fl["it_share_bands"], band_labels=fl["band_labels"],
+            definitions=self._bdef("downtime_minutes", "it_downtime_share") | {
+                "devices": {"in_use": "Intune-active devices this week",
+                            "healthy": "Reported telemetry with no app crash or blue screen",
+                            "having_problems": "Reported at least one app crash or blue screen",
+                            "silent": "Intune-active but sent no telemetry this week"},
+                "fixes": {"planned": "Actions in the remediation register",
+                          "done": "Marked Done with an action date on or before the end of the week",
+                          "proven_effective": "Done, and the intended metric improved beyond any comparison group"}},
+            warnings=self._warnings(w, w, f),
+            notes=["Areas group a plant's lines by product family. Rings use the share of line-stop minutes with an "
+                   "IT cause, from the MES stop log, which keeps working when telemetry is down.",
+                   "Device states come from telemetry: during a telemetry outage devices show as silent, not healthy.",
+                   "Areas with fewer than 10 line stops in the week are hidden, like other small groups."])
+
     # ================================================================== freshness (Phase 7)
 
     @audited

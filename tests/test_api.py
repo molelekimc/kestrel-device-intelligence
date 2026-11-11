@@ -5,6 +5,7 @@ import asyncio
 import json
 import shutil
 
+import anthropic
 import pytest
 from fastapi.testclient import TestClient
 
@@ -106,12 +107,43 @@ def test_no_path_traversal(client):
         assert "[project]" not in r.text and "kestrel-device-intelligence" not in r.text, path
 
 
+def test_app_page_is_revalidated(client):
+    r = client.get("/some/page")
+    if r.status_code == 200:                               # only once the web app is built
+        assert r.headers["cache-control"] == "no-cache"
+
+
+def test_floor_route(client):
+    r = client.get("/api/tools/floor", params={"week": "2026-W41"})
+    assert r.status_code == 200 and {"devices_total", "fixes", "incidents"} <= set(r.json())
+    assert client.get("/api/tools/floor", params={"plant": "Atlantis"}).status_code == 422
+
+
 # ----------------------------------------------------------------- Ask the fleet
 
 def test_chat_disabled_without_key(client, monkeypatch):
     monkeypatch.setattr(api, "ai_enabled", lambda: False)
     events = sse(client.post("/api/ask", json={"question": "How is Durban?"}).text)
     assert events[0]["type"] == "error" and "ANTHROPIC_API_KEY" in events[0]["message"]
+
+
+def _raise_credentials_error():
+    raise anthropic.AnthropicError("corrupt profile")
+
+
+@pytest.mark.parametrize("key, creds, enabled", [
+    ("sk-test", lambda: None, True),                 # API key in the environment
+    (None, lambda: object(), True),                  # `ant auth login` profile found by the SDK
+    (None, lambda: None, False),                     # nothing configured
+    (None, _raise_credentials_error, False),         # broken profile: disabled, not a crash
+])
+def test_ai_enabled_sources(monkeypatch, key, creds, enabled):
+    if key:
+        monkeypatch.setenv("ANTHROPIC_API_KEY", key)
+    else:
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr(api, "default_credentials", creds)
+    assert api.ai_enabled() is enabled
 
 
 def test_chat_streams_tool_calls_then_answer(client, monkeypatch, audit_to_tmp):

@@ -79,7 +79,7 @@ def run(system: str, prompt: str, *, tools: FleetTools, model: str | None = None
         except TypeError as e:
             if "authentication" not in str(e):
                 raise
-            raise BriefingModelError("No Anthropic credentials found. Set ANTHROPIC_API_KEY.") from e
+            raise BriefingModelError("No Anthropic credentials found. Set ANTHROPIC_API_KEY or run `ant auth login`.") from e
         except anthropic.AuthenticationError as e:
             raise BriefingModelError("ANTHROPIC_API_KEY was rejected.") from e
         except anthropic.NotFoundError as e:

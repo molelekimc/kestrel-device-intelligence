@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import anthropic
+from anthropic.lib.credentials import default_credentials
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -45,7 +46,7 @@ TOOLS = {
     "rollout": "get_rollout_status", "top-events": "get_top_events",
     "business-impact": "get_business_impact", "tickets": "get_ticket_metrics",
     "changes": "get_change_correlation", "remediation": "get_remediation_status",
-    "timeline": "get_timeline", "freshness": "get_data_freshness",
+    "timeline": "get_timeline", "freshness": "get_data_freshness", "floor": "get_floor_status",
 }
 
 
@@ -95,7 +96,13 @@ provider = ToolsProvider()
 
 
 def ai_enabled() -> bool:
-    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+    """An API key, or the sign-in that `ant auth login` stores (the SDK reads it from the active profile)."""
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return True
+    try:
+        return default_credentials() is not None
+    except anthropic.AnthropicError:                  # a broken profile on disk: report disabled, don't crash
+        return False
 
 
 def make_client():
@@ -169,8 +176,10 @@ def status():
     fresh = t.get_data_freshness()
     weeks = t.v.weeks
     last = watcher.read_log(1)
+    # The last day the warehouse holds data for (mid-week during a replay), not the end of the last week.
+    data_to = t._q("SELECT max(day) AS d FROM gold_coverage_daily")[0]["d"] if weeks else None
     return {"version": provider.version(), "as_of": _clock() or str(config.AS_OF), "replay": _clock() is not None,
-            "weeks": weeks, "data_to": t.v.week_dates[weeks[-1]][1].isoformat() if weeks else None,
+            "weeks": weeks, "data_to": data_to.isoformat() if data_to else None,
             "freshness": fresh["data_freshness"], "ai_enabled": ai_enabled(),
             "last_refresh": last[-1] if last else None}
 
@@ -228,7 +237,7 @@ def answer_events(q: Question, emit) -> None:
     """Runs in a worker thread; reports progress through emit(dict)."""
     t0 = time.perf_counter()
     if not ai_enabled():
-        emit({"type": "error", "message": "Ask the fleet is disabled: set ANTHROPIC_API_KEY on the server. "
+        emit({"type": "error", "message": "Ask the fleet is disabled: set ANTHROPIC_API_KEY or run `ant auth login` on the server. "
                                           "Every other page works without it."})
         return
     if not _chat_slots.acquire(blocking=False):
@@ -298,7 +307,10 @@ def spa(path: str):
                                        "The API is available under /api (docs at /docs)."}, status_code=404)
     target = (WEB_DIST / path).resolve()
     inside = WEB_DIST.resolve() in target.parents          # never serve files outside web/dist
-    return FileResponse(target if path and inside and target.is_file() else index)
+    if path and inside and target.is_file():
+        return FileResponse(target)
+    # The page names hashed assets, so browsers must re-check it or they keep a stale build.
+    return FileResponse(index, headers={"Cache-Control": "no-cache"})
 
 
 def run() -> None:
