@@ -25,7 +25,7 @@ const STEP_TEXT: Record<string, string> = {
   get_rollout_status: "Reconciling the rollout", get_top_events: "Finding top crashes / blue screens",
   get_business_impact: "Reading business impact", get_ticket_metrics: "Reading service desk metrics",
   get_change_correlation: "Checking logged changes", get_remediation_status: "Checking remediations",
-  get_timeline: "Reading the timeline", get_data_freshness: "Checking freshness",
+  get_timeline: "Reading the timeline", get_data_freshness: "Checking freshness", get_floor_status: "Reading the plant floor",
   list_allowed_values: "Looking up allowed values", get_metric_definition: "Reading a metric definition",
 };
 

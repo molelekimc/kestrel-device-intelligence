@@ -182,7 +182,7 @@ def test_people_never_returned(mini_tools):
         mini_tools._out.check({"rows": [{"note": "called by Test Caller"}]})
     for name, args in (("get_business_impact", {}), ("get_ticket_metrics", {"group_by": "plant"}),
                        ("get_change_correlation", {"include_no_evidence": True}), ("get_remediation_status", {}),
-                       ("get_timeline", {})):
+                       ("get_timeline", {}), ("get_floor_status", {})):
         text = json.dumps(getattr(mini_tools, name)(**args), default=str)
         assert "Test Caller" not in text and "Other Person" not in text and "KP" not in re.findall(r"\b[A-Z]{2}\b", text)
 
@@ -238,6 +238,42 @@ def test_remediation_storylines(t):
 def test_no_people_in_any_business_output(t):
     for name, args in (("get_business_impact", {}), ("get_ticket_metrics", {"group_by": "category"}),
                        ("get_change_correlation", {"include_no_evidence": True}), ("get_remediation_status", {}),
-                       ("get_timeline", {})):
+                       ("get_timeline", {}), ("get_floor_status", {})):
         text = json.dumps(getattr(t, name)(**args), default=str)
         assert not any(p in text for p in t._out.people)
+
+
+# ----------------------------------------------------------------- control room (Phase 8)
+
+def test_floor_status_small_areas_hidden(mini_tools):
+    r = mini_tools.get_floor_status("2026-W41")
+    assert {"period", "rows", "devices_by_plant", "devices_total", "fixes", "incidents", "bands",
+            "warnings", "data_freshness"} <= set(r)
+    small = [a for a in r["rows"] if a.get("suppressed")]
+    assert small and all(a["band"] is None and "it_minutes" not in a for a in small)
+    assert all(a["area"] and a["plant_name"] for a in r["rows"])
+    assert "device_key" not in json.dumps(r) and "line_id" not in json.dumps(r)
+
+
+def test_floor_status_inputs_validated(mini_tools):
+    with pytest.raises(ToolInputError):
+        mini_tools.get_floor_status(plant="Atlantis")
+    with pytest.raises(ToolInputError):
+        mini_tools.get_floor_status(week="2026-W99")
+
+
+@pytest.mark.parametrize("share, band", [(None, None), (0.05, "normal"), (0.12, "watch"), (0.199, "watch"),
+                                         (0.20, "hurting"), (0.4, "hurting")])
+def test_floor_bands(mini_tools, share, band):
+    assert mini_tools._band(share) == band
+
+
+@real
+def test_floor_w41_story(t):
+    r = t.get_floor_status("2026-W41")
+    assert {a["band"] for a in r["rows"]} == {"hurting"}                      # the MES incident hit every area
+    dbn = next(d for d in r["devices_by_plant"] if d["plant"] == "DBN")
+    assert dbn["silent"] > dbn["in_use"] / 2                                  # outage shows as silent, not healthy
+    assert all(d["healthy"] + d["having_problems"] + d["silent"] == d["in_use"] for d in r["devices_by_plant"])
+    quiet = t.get_floor_status("2026-W38")
+    assert "normal" in {a["band"] for a in quiet["rows"]}

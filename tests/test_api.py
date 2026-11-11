@@ -107,6 +107,18 @@ def test_no_path_traversal(client):
         assert "[project]" not in r.text and "kestrel-device-intelligence" not in r.text, path
 
 
+def test_app_page_is_revalidated(client):
+    r = client.get("/some/page")
+    if r.status_code == 200:                               # only once the web app is built
+        assert r.headers["cache-control"] == "no-cache"
+
+
+def test_floor_route(client):
+    r = client.get("/api/tools/floor", params={"week": "2026-W41"})
+    assert r.status_code == 200 and {"devices_total", "fixes", "incidents"} <= set(r.json())
+    assert client.get("/api/tools/floor", params={"plant": "Atlantis"}).status_code == 422
+
+
 # ----------------------------------------------------------------- Ask the fleet
 
 def test_chat_disabled_without_key(client, monkeypatch):

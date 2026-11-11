@@ -46,7 +46,7 @@ TOOLS = {
     "rollout": "get_rollout_status", "top-events": "get_top_events",
     "business-impact": "get_business_impact", "tickets": "get_ticket_metrics",
     "changes": "get_change_correlation", "remediation": "get_remediation_status",
-    "timeline": "get_timeline", "freshness": "get_data_freshness",
+    "timeline": "get_timeline", "freshness": "get_data_freshness", "floor": "get_floor_status",
 }
 
 
@@ -305,7 +305,10 @@ def spa(path: str):
                                        "The API is available under /api (docs at /docs)."}, status_code=404)
     target = (WEB_DIST / path).resolve()
     inside = WEB_DIST.resolve() in target.parents          # never serve files outside web/dist
-    return FileResponse(target if path and inside and target.is_file() else index)
+    if path and inside and target.is_file():
+        return FileResponse(target)
+    # The page names hashed assets, so browsers must re-check it or they keep a stale build.
+    return FileResponse(index, headers={"Cache-Control": "no-cache"})
 
 
 def run() -> None:

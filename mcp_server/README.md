@@ -21,6 +21,7 @@ aggregate fleet metrics only. Kestrel Assembly Group is a fictional client and a
 | `get_change_correlation(week_from?, week_to?, change_id?, metric?, include_no_evidence?)` | Logged changes ranked by evidence that a relevant metric shifted in the devices they targeted, with the mechanism (app version or bug check code) and competing changes. Evidence, not proof |
 | `get_remediation_status(verdict?)` | Remediation register checked against changes and telemetry: implemented or not, and whether the target metric improved |
 | `get_timeline(week_from?, week_to?, plant?)` | Changes, major incidents, monitoring tickets, problems, outages and remediations in date order |
+| `get_floor_status(week?, plant?)` | One week on the plant floor: each production area's IT share of line-stop time (normal / watch / hurting), device states per plant, fixes done vs planned, incidents opened vs resolved |
 | `get_data_freshness()` | Each source's age against its SLA (fresh / late / stale), telemetry also per plant with a volume check; every response also carries a short `data_freshness` summary |
 
 Metrics: `startup_count`, `boot_time_p50`, `boot_time_p90`, `logon_time_p50`,
@@ -56,4 +57,4 @@ python -m mcp_server.server     # stdio server (or: .venv/bin/kestrel-mcp)
 
 3. Add the server from [`claude_desktop_config.example.json`](claude_desktop_config.example.json), replacing `/ABSOLUTE/PATH/TO` with the repository's location. Spaces in the path are fine inside JSON strings.
 
-4. Restart Claude Desktop. `kestrel-fleet` appears under the tools icon. All 15 tools are marked read-only.
+4. Restart Claude Desktop. `kestrel-fleet` appears under the tools icon. All 16 tools are marked read-only.

@@ -159,6 +159,28 @@ business:
     effective_rel: 0.30         # improvement in the intended direction, relative to before
     no_effect_rel: 0.10         # smaller than this either way: no detectable effect
 
+# Control room (Phase 8): production areas (plant x product family) and how their week is banded.
+# Bands use the share of line-stop minutes with an IT cause; normal weeks sit around 5-7 % per area
+# (90th percentile about 12 %), the W41 MES incident pushed areas above 30 %.
+floor:
+  it_share_bands:
+    watch: 0.12                 # at or above: amber "watch"
+    hurting: 0.20               # at or above: red "hurting"
+  band_labels:
+    normal: Running normally
+    watch: "Watch: IT is causing more stops than usual"
+    hurting: "Hurting: IT faults are a major cause of lost production"
+  areas:                        # product family code -> plain-English name
+    BIW: Body shop
+    PAINT: Paint shop
+    TRIM: Trim
+    FINAL: Final assembly
+    AXLE: Axles
+    EXH: Exhausts
+    MACH: Machining
+    SEAT: Seats
+    HARN: Wiring harnesses
+
 business_metrics:
   tickets_opened:
     label: Incidents opened

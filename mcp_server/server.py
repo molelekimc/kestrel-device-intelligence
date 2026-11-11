@@ -39,6 +39,8 @@ When answering:
 - For business impact use get_business_impact (line downtime and an ILLUSTRATIVE cost range; always
   say the cost is illustrative), get_ticket_metrics, get_change_correlation (evidence, not proof:
   check mechanism and competing changes), get_remediation_status and get_timeline.
+- For a one-week overview of the plant floor (production areas, device states, fixes, incidents)
+  use get_floor_status.
 """
 
 server = MCPServer("kestrel-fleet", instructions=INSTRUCTIONS, version="0.1.0")
@@ -202,6 +204,14 @@ def get_timeline(week_from: Week = None, week_to: Week = None, plant: Plant = No
     """Dated changes, major incidents, monitoring tickets, problem records, telemetry outages and
     remediation actions, to line up what happened when."""
     return tools().get_timeline(week_from, week_to, plant)
+
+
+@server.tool(annotations=READ_ONLY)
+def get_floor_status(week: Week = None, plant: Plant = None) -> dict:
+    """One week on the plant floor: each production area's share of line-stop time caused by IT
+    (banded normal / watch / hurting), device states per plant (healthy, having problems, silent),
+    remediation actions done vs planned, and incidents opened vs resolved."""
+    return tools().get_floor_status(week, plant)
 
 
 @server.tool(annotations=READ_ONLY)
