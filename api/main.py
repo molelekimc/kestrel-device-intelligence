@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import anthropic
+from anthropic.lib.credentials import default_credentials
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -95,7 +96,13 @@ provider = ToolsProvider()
 
 
 def ai_enabled() -> bool:
-    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+    """An API key, or the sign-in that `ant auth login` stores (the SDK reads it from the active profile)."""
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return True
+    try:
+        return default_credentials() is not None
+    except anthropic.AnthropicError:                  # a broken profile on disk: report disabled, don't crash
+        return False
 
 
 def make_client():
@@ -228,7 +235,7 @@ def answer_events(q: Question, emit) -> None:
     """Runs in a worker thread; reports progress through emit(dict)."""
     t0 = time.perf_counter()
     if not ai_enabled():
-        emit({"type": "error", "message": "Ask the fleet is disabled: set ANTHROPIC_API_KEY on the server. "
+        emit({"type": "error", "message": "Ask the fleet is disabled: set ANTHROPIC_API_KEY or run `ant auth login` on the server. "
                                           "Every other page works without it."})
         return
     if not _chat_slots.acquire(blocking=False):

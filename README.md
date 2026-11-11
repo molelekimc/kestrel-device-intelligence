@@ -155,6 +155,12 @@ Tools:
 export ANTHROPIC_API_KEY=...
 ```
 
+Or sign in once with Anthropic's CLI instead of handling a key (the Python SDK reads the stored sign-in):
+
+```bash
+ant auth login
+```
+
 ```bash
 .venv/bin/python -m automation.weekly_briefing --week 2026-W41
 ```
@@ -301,7 +307,7 @@ scripts/demo.sh                                 # replay + refresh watcher + app
 - the final answer is checked for device and person identifiers before it is sent;
 - input limits and bounded concurrency;
 - audited as `app-chat`;
-- without `ANTHROPIC_API_KEY` it says so, and every other page works.
+- without credentials (`ANTHROPIC_API_KEY`, or an `ant auth login` sign-in) it says so, and every other page works.
 
 **Web app** (`web/`, Vite + React 18 + TypeScript):
 - **Pages:** Overview, Why, What's being done, Service desk, Data trust, Ask the fleet.

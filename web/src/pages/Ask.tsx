@@ -94,7 +94,7 @@ export default function Ask() {
         and the data quality and freshness caveats that apply. Explanations are hypotheses, not proven causes.
       </p>
       {status && !status.ai_enabled && (
-        <p className="error">Ask the fleet is disabled on this server: set ANTHROPIC_API_KEY. Every other page works without it.</p>
+        <p className="error">Ask the fleet is disabled on this server: set ANTHROPIC_API_KEY or run <code>ant auth login</code>. Every other page works without it.</p>
       )}
       <div className="chat">
         {turns.length === 0 && (
@@ -123,7 +123,7 @@ export default function Ask() {
       <form className="ask" onSubmit={(e) => { e.preventDefault(); send(draft); }}>
         <label htmlFor="q" className="visually-hidden">Question</label>
         <textarea id="q" rows={2} maxLength={2000} value={draft} disabled={disabled}
-          placeholder={disabled ? "Disabled: no ANTHROPIC_API_KEY on the server" : "Ask about the fleet…"}
+          placeholder={disabled ? "Disabled: no Anthropic credentials on the server" : "Ask about the fleet…"}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(draft); } }} />
         <button type="submit" disabled={busy || disabled || !draft.trim()}>{busy ? "Thinking…" : "Ask"}</button>
