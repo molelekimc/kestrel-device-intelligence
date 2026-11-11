@@ -19,7 +19,7 @@ export default function TV() {
   const { status, connected, week: chosen } = useLive();
   const weeks = status?.weeks ?? [];
   // TV follows the latest week unless a link pins one (?week=2026-W41).
-  const linked = new URLSearchParams(window.location.search).has("week");
+  const linked = new URLSearchParams(window.location.search).has("week") || !!status?.default_week;
   const week = (linked ? chosen : weeks.at(-1)) ?? null;
   const { prev } = weekWindow(weeks, week);
   const [i, setI] = useState(0);

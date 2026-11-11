@@ -55,12 +55,21 @@ export default function Ask() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  // Public demo: the passcode is kept for this browser tab only.
+  const [passcode, setPasscode] = useState(() => {
+    try { return sessionStorage.getItem("kestrel-chat-passcode") ?? ""; } catch { return ""; }
+  });
+  const savePasscode = (v: string) => {
+    setPasscode(v);
+    try { sessionStorage.setItem("kestrel-chat-passcode", v); } catch { /* storage blocked */ }
+  };
+  const needsCode = !!status?.chat_passcode;
   const end = useRef<HTMLDivElement>(null);
 
   const disabled = status ? !status.ai_enabled : false;
   const send = async (question: string) => {
     const q = question.trim();
-    if (!q || busy || disabled) return;
+    if (!q || busy || disabled || (needsCode && !passcode)) return;
     const history = turns.filter((t) => !t.error).map(({ role, content }) => ({ role, content }));
     setTurns((t) => [...t, { role: "user", content: q }, { role: "assistant", content: "", steps: [] }]);
     setDraft("");
@@ -79,7 +88,7 @@ export default function Ask() {
       else if (e.type === "answer") update((a) => ({ ...a, content: e.text }));
       else if (e.type === "error") update((a) => ({ ...a, content: e.message, error: true }));
       end.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    });
+    }, needsCode ? passcode : undefined);
     setBusy(false);
   };
 
@@ -92,10 +101,18 @@ export default function Ask() {
       {status && !status.ai_enabled && (
         <p className="error">Ask the fleet is disabled on this server: set ANTHROPIC_API_KEY or run <code>ant auth login</code>. Every other page works without it.</p>
       )}
+      {needsCode && !disabled && (
+        <label className="passcode">
+          Demo passcode{" "}
+          <input type="password" value={passcode} onChange={(e) => savePasscode(e.target.value)} autoComplete="off"
+            placeholder="from the person who shared this demo" />
+          <span className="meta"> The chat calls a paid AI service, so it is limited to invited visitors.</span>
+        </label>
+      )}
       <div className="chat">
         {turns.length === 0 && (
           <div className="suggestions">
-            {SUGGESTIONS.map((s) => <button key={s} className="ghost" onClick={() => send(s)} disabled={busy || disabled}>{s}</button>)}
+            {SUGGESTIONS.map((s) => <button key={s} className="ghost" onClick={() => send(s)} disabled={busy || disabled || (needsCode && !passcode)}>{s}</button>)}
           </div>
         )}
         {turns.map((t, i) => (
@@ -122,7 +139,7 @@ export default function Ask() {
           placeholder={disabled ? "Disabled: no Anthropic credentials on the server" : "Ask about the fleet…"}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(draft); } }} />
-        <button type="submit" disabled={busy || disabled || !draft.trim()}>{busy ? "Thinking…" : "Ask"}</button>
+        <button type="submit" disabled={busy || disabled || !draft.trim() || (needsCode && !passcode)}>{busy ? "Thinking…" : "Ask"}</button>
       </form>
     </Card>
   );

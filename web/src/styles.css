@@ -330,3 +330,7 @@ dialog.about::backdrop { background: rgba(4, 8, 6, .7); backdrop-filter: blur(3p
 .about p, .about ul { margin: 0; color: var(--text-secondary); } .about ul { padding-left: 18px; } .about li { margin: 4px 0; }
 .about strong, .about em { color: var(--text-primary); }
 .about-foot { font-size: 13px; margin-top: 18px !important; border-top: 1px solid var(--border); padding-top: 12px; }
+
+.passcode { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; margin: 8px 0; }
+.passcode input { font: inherit; color: var(--text-primary); background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 8px; min-width: 260px; }

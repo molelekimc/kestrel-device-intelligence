@@ -9,6 +9,7 @@ audit log. Also: live refresh events, refresh history and manual refresh request
 """
 
 import asyncio
+import hmac
 import inspect
 import json
 import os
@@ -19,7 +20,7 @@ from pathlib import Path
 
 import anthropic
 from anthropic.lib.credentials import default_credentials
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -93,6 +94,47 @@ class ToolsProvider:
 
 
 provider = ToolsProvider()
+
+
+# --------------------------------------------------------------------------- deployment settings (Phase 9)
+
+def public_mode() -> bool:
+    """A public snapshot (e.g. on Render): no manual refresh, nothing on the server can be changed."""
+    return os.environ.get("KESTREL_PUBLIC", "").strip().lower() in ("1", "true", "yes")
+
+
+def default_week(weeks: list[str]) -> str | None:
+    """The week pages open on without a ?week= link; ignored unless it is a week in the warehouse."""
+    w = os.environ.get("KESTREL_DEFAULT_WEEK", "").strip().upper()
+    return w if w in weeks else None
+
+
+def chat_passcode() -> str | None:
+    return os.environ.get("KESTREL_CHAT_PASSCODE") or None
+
+
+class DailyLimit:
+    """Questions answered per UTC day, to bound the cost of a public chat. In memory: resets on restart."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._day, self._used = None, 0
+
+    def limit(self) -> int:
+        return int(os.environ.get("KESTREL_CHAT_DAILY_LIMIT", "30"))
+
+    def take(self) -> bool:
+        today = datetime.now(timezone.utc).date()
+        with self._lock:
+            if self._day != today:
+                self._day, self._used = today, 0
+            if self._used >= self.limit():
+                return False
+            self._used += 1
+            return True
+
+
+chat_limit = DailyLimit()
 
 
 def ai_enabled() -> bool:
@@ -181,7 +223,14 @@ def status():
     return {"version": provider.version(), "as_of": _clock() or str(config.AS_OF), "replay": _clock() is not None,
             "weeks": weeks, "data_to": data_to.isoformat() if data_to else None,
             "freshness": fresh["data_freshness"], "ai_enabled": ai_enabled(),
-            "last_refresh": last[-1] if last else None}
+            "last_refresh": last[-1] if last else None,
+            "public": public_mode(), "default_week": default_week(weeks), "chat_passcode": chat_passcode() is not None}
+
+
+@app.get("/api/health", summary="Liveness check for the host: the warehouse opens and answers")
+def health():
+    t = provider.get("app")
+    return {"ok": bool(t.v.weeks), "version": provider.version()}
 
 
 @app.get("/api/refresh/history", summary="Recent refresh runs from the watcher log")
@@ -191,6 +240,8 @@ def refresh_history(limit: int = 20):
 
 @app.post("/api/refresh", status_code=202, summary="Ask the refresh watcher to rebuild now")
 def request_refresh():
+    if public_mode():
+        raise HTTPException(403, "This is a public read-only snapshot; it is not refreshed on request.")
     watcher.REQUEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     watcher.REQUEST_PATH.write_text(json.dumps({"requested_at": datetime.now(timezone.utc).isoformat()}))
     return {"requested": True, "note": "The refresh watcher picks this up within a few seconds if it is running."}
@@ -243,6 +294,11 @@ def answer_events(q: Question, emit) -> None:
     if not _chat_slots.acquire(blocking=False):
         emit({"type": "error", "message": "The assistant is busy with other questions; try again in a moment."})
         return
+    if not chat_limit.take():
+        _chat_slots.release()
+        emit({"type": "error", "message": "The daily demo limit for Ask the fleet has been reached. Try again tomorrow; "
+                                          "every other page still works."})
+        return
     try:
         tools = provider.get("app-chat")
         res = llm.run(INSTRUCTIONS, q.question, tools=tools, client=make_client(),
@@ -266,7 +322,10 @@ def answer_events(q: Question, emit) -> None:
 
 
 @app.post("/api/ask", summary="Ask the fleet: Claude answers using only the governed tools (SSE stream)")
-async def ask(q: Question):
+async def ask(q: Question, x_chat_passcode: str | None = Header(default=None)):
+    code = chat_passcode()
+    if code and not hmac.compare_digest((x_chat_passcode or "").encode(), code.encode()):
+        raise HTTPException(401, "Ask the fleet needs the demo passcode.")
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue = asyncio.Queue()
 
@@ -315,7 +374,12 @@ def spa(path: str):
 
 def run() -> None:
     import uvicorn
-    uvicorn.run(app, host=os.environ.get("KESTREL_HOST", "127.0.0.1"), port=int(os.environ.get("KESTREL_PORT", "8000")))
+    uvicorn.run(app, host=os.environ.get("KESTREL_HOST", "127.0.0.1"), port=listen_port())
+
+
+def listen_port() -> int:
+    """Render (and most hosts) set PORT; KESTREL_PORT is the local override; 8000 otherwise."""
+    return int(os.environ.get("PORT") or os.environ.get("KESTREL_PORT") or "8000")
 
 
 if __name__ == "__main__":

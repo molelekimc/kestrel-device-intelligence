@@ -180,3 +180,55 @@ def test_chat_answer_with_identifier_is_blocked(client, monkeypatch, audit_to_tm
 ])
 def test_chat_input_limits(client, body):
     assert client.post("/api/ask", json=body).status_code == 422
+
+
+# ----------------------------------------------------------------- public deployment (Phase 9)
+
+@pytest.mark.parametrize("env, port", [({}, 8000), ({"KESTREL_PORT": "8123"}, 8123),
+                                       ({"PORT": "10000", "KESTREL_PORT": "8123"}, 10000)])
+def test_listen_port(monkeypatch, env, port):
+    for k in ("PORT", "KESTREL_PORT"):
+        monkeypatch.delenv(k, raising=False)
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+    assert api.listen_port() == port
+
+
+def test_health(client):
+    r = client.get("/api/health")
+    assert r.status_code == 200 and r.json()["ok"] is True
+
+
+def test_public_mode_refuses_refresh(client, monkeypatch):
+    monkeypatch.setenv("KESTREL_PUBLIC", "1")
+    assert client.post("/api/refresh").status_code == 403 and not watcher.REQUEST_PATH.exists()
+    assert client.get("/api/status").json()["public"] is True
+
+
+def test_default_week_only_if_known(client, monkeypatch):
+    weeks = client.get("/api/status").json()["weeks"]
+    monkeypatch.setenv("KESTREL_DEFAULT_WEEK", weeks[0].lower())
+    assert client.get("/api/status").json()["default_week"] == weeks[0]
+    monkeypatch.setenv("KESTREL_DEFAULT_WEEK", "2026-W99")
+    assert client.get("/api/status").json()["default_week"] is None
+
+
+def test_chat_passcode(client, monkeypatch, audit_to_tmp):
+    monkeypatch.setenv("KESTREL_CHAT_PASSCODE", "kestrel-demo")
+    monkeypatch.setattr(api, "ai_enabled", lambda: True)
+    monkeypatch.setattr(api, "make_client", lambda: FakeClient([response([block(type="text", text="ok")])]))
+    assert client.get("/api/status").json()["chat_passcode"] is True
+    assert client.post("/api/ask", json={"question": "hi"}).status_code == 401
+    assert client.post("/api/ask", json={"question": "hi"}, headers={"X-Chat-Passcode": "wrong"}).status_code == 401
+    ok = client.post("/api/ask", json={"question": "hi"}, headers={"X-Chat-Passcode": "kestrel-demo"})
+    assert ok.status_code == 200 and sse(ok.text)[-1]["text"] == "ok"
+
+
+def test_chat_daily_limit(client, monkeypatch, audit_to_tmp):
+    monkeypatch.setenv("KESTREL_CHAT_DAILY_LIMIT", "1")
+    monkeypatch.setattr(api, "chat_limit", api.DailyLimit())
+    monkeypatch.setattr(api, "ai_enabled", lambda: True)
+    monkeypatch.setattr(api, "make_client", lambda: FakeClient([response([block(type="text", text="first")])]))
+    assert sse(client.post("/api/ask", json={"question": "one"}).text)[-1]["text"] == "first"
+    second = sse(client.post("/api/ask", json={"question": "two"}).text)
+    assert second[0]["type"] == "error" and "daily demo limit" in second[0]["message"]

@@ -30,6 +30,8 @@ The answers sit in systems that don't talk to each other: device management (Int
 
 > Ample Roots Digital (ARD) is a fictional consultancy, and Kestrel Assembly Group is a fictional client. All data in this repository is synthetic. No employer data, code or business rules are used.
 
+**Live demo:** _link coming once deployed on Render (see [Deploy to Render](#phase-9-deploy-to-render))._
+
 **Run it:** see [Quick start](#quick-start), then [the live demo](#phase-7-live-reporting-app-ai-chat-and-automated-freshness) (`scripts/demo.sh`), and open `http://127.0.0.1:8000` (TV mode at `/tv`).
 
 ### What's in the repository
@@ -385,6 +387,45 @@ MINUTES_PER_DAY=1.5 scripts/demo.sh 2026-10-03
 5. **Drill in.** Hover an area for its sentence. Then **Why** shows the change evidence, **What's being done** shows which fixes worked, and which were only marked done.
 6. **The wall screen.** Open `/tv` in a second window: it rotates on its own and updates when new data lands.
 7. **Ask the fleet.** Ask *"Telemetry shows almost no MES crashes at Durban in W41. Did Durban escape the KestrelMES problem?"* and watch Claude call the governed tools, find the outage, and answer from the MES stop log. Then ask for device hostnames and watch it refuse.
+
+## Phase 9: Deploy to Render
+
+The app ships as **one Docker container** (`Dockerfile`):
+1. It builds the React app.
+2. It installs the Python package and **builds the warehouse from the synthetic `raw/` files at image build time**, so the service starts serving immediately.
+3. It runs as an unprivileged user.
+
+CI builds the same image on every push and smoke-tests it with the Render settings, so a broken image never reaches Render.
+
+**Deploy (about 10 minutes, no command line):**
+1. Sign in at [render.com](https://render.com) with GitHub, and give Render access to this repository.
+2. **New → Blueprint**, pick the repository. Render reads [`render.yaml`](render.yaml): one free web service in Frankfurt, health check `/api/health`, redeployed automatically when `main` changes.
+3. When Render asks for `ANTHROPIC_API_KEY` and `KESTREL_CHAT_PASSCODE`, **leave both empty** to start with the chat switched off.
+4. Wait for the first build (5–8 minutes) and open the `https://…onrender.com` URL.
+
+**What a visitor gets:**
+- the control room, opening on week 41 (`KESTREL_DEFAULT_WEEK`);
+- TV mode at `/tv`;
+- every detail page, and the API docs at `/docs`.
+
+It is a **read-only snapshot** (`KESTREL_PUBLIC=1`): nothing can be changed or refreshed from outside, and all data is synthetic.
+
+On the free plan the service sleeps after 15 idle minutes, so the first visit after a quiet spell takes about 30–60 seconds to wake.
+
+**Turning on Ask the fleet safely (optional):**
+- In Render → the service → *Environment*, set `ANTHROPIC_API_KEY` and a `KESTREL_CHAT_PASSCODE` you share only with people you invite.
+- `KESTREL_CHAT_DAILY_LIMIT` (30 by default) caps questions per day, and at most two run at once.
+- Also set a monthly spend limit in the Anthropic Console.
+
+| Setting | Purpose |
+|---|---|
+| `PORT` | set by Render; locally `KESTREL_PORT` or 8000 |
+| `KESTREL_HOST` | `0.0.0.0` in the container, `127.0.0.1` locally |
+| `KESTREL_PUBLIC` | read-only public snapshot (no manual refresh) |
+| `KESTREL_DEFAULT_WEEK` | week to open on without a `?week=` link |
+| `KESTREL_CHAT_PASSCODE` | chat passcode (constant-time check) |
+| `KESTREL_CHAT_DAILY_LIMIT` | chat questions per day |
+| `ANTHROPIC_API_KEY` | turns on Ask the fleet |
 
 ## How this was built
 
