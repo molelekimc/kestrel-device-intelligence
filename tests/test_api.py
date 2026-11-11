@@ -100,7 +100,10 @@ def test_refresh_events_announce_new_versions(client, mini_db_path, tmp_path):
 
 
 def test_no_path_traversal(client):
-    assert client.get("/..%2f..%2fpyproject.toml").status_code == 404
+    # With the web app built, unknown paths fall back to its index page; files outside web/dist never leak.
+    for path in ("/..%2f..%2fpyproject.toml", "/../pyproject.toml", "/%2e%2e/%2e%2e/pyproject.toml"):
+        r = client.get(path)
+        assert "[project]" not in r.text and "kestrel-device-intelligence" not in r.text, path
 
 
 # ----------------------------------------------------------------- Ask the fleet
