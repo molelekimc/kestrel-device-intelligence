@@ -35,12 +35,13 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!status) return;                       // keep a linked week until the week list is known
-    const latest = status.weeks.at(-1) ?? null;
-    if (!pinned || !status.weeks.includes(week ?? "")) setWeekState(latest);
+    // Follow the latest week, unless the server names a default (the public demo opens on the story week).
+    const target = status.default_week ?? status.weeks.at(-1) ?? null;
+    if (!pinned || !status.weeks.includes(week ?? "")) setWeekState(target);
   }, [status, pinned, week]);
 
   const setWeek = (w: string) => {
-    setPinned(w !== status?.weeks.at(-1));
+    setPinned(w !== (status?.default_week ?? status?.weeks.at(-1)));
     setWeekState(w);
   };
 

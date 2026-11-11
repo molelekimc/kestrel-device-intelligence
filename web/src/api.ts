@@ -36,6 +36,9 @@ export interface Status {
   freshness: FreshnessSummary;
   ai_enabled: boolean;
   last_refresh: Row | null;
+  public?: boolean;               // read-only public snapshot (no manual refresh)
+  default_week?: string | null;   // week to open on without a ?week= link
+  chat_passcode?: boolean;        // Ask the fleet needs a passcode
 }
 
 export class ApiError extends Error {
@@ -94,12 +97,15 @@ export async function ask(
   question: string,
   history: { role: "user" | "assistant"; content: string }[],
   onEvent: (e: ChatEvent) => void,
+  passcode?: string,
 ): Promise<void> {
-  const r = await fetch("/api/ask", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, history }),
-  });
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (passcode) headers["X-Chat-Passcode"] = passcode;
+  const r = await fetch("/api/ask", { method: "POST", headers, body: JSON.stringify({ question, history }) });
+  if (r.status === 401) {
+    onEvent({ type: "error", message: "That passcode isn't right. Ask the person who shared this demo for it." });
+    return;
+  }
   if (!r.ok || !r.body) {
     onEvent({ type: "error", message: `The assistant could not be reached (${r.status}).` });
     return;

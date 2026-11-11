@@ -27,13 +27,13 @@ export function FreshnessBar() {
         <span className={`live-dot ${connected ? "on" : ""}`} title={connected ? "Live updates connected" : "Live updates offline"}>
           {connected ? "Live" : "Offline"}
         </span>
-        <button
+        {!status?.public && <button
           className="ghost"
           disabled={asked}
           onClick={() => requestRefresh().then(() => setAsked(true)).then(() => setTimeout(() => setAsked(false), 8000))}
         >
           {asked ? "Refresh requested" : "Refresh now"}
-        </button>
+        </button>}
       </div>
       {chips.length > 0 && (
         <ul className="chips">
