@@ -104,7 +104,8 @@ details { margin: 8px 0; font-size: 14px; } summary { cursor: pointer; color: va
 .turn.user { align-self: flex-end; background: var(--page); }
 .turn.assistant { align-self: flex-start; }
 .turn.err { border-color: var(--critical); }
-.turn p { margin: 6px 0; } .turn ul { margin: 6px 0; padding-left: 20px; }
+.turn p { margin: 6px 0; } .turn ul, .turn ol { margin: 6px 0; padding-left: 20px; }
+.turn code { font-size: 0.9em; padding: 1px 4px; border-radius: 4px; background: var(--page); }
 .steps { list-style: none; padding: 0; margin: 0 0 6px; font-size: 13px; color: var(--text-secondary); }
 .ask { display: flex; gap: 8px; align-items: flex-end; }
 .ask textarea { flex: 1; resize: vertical; }

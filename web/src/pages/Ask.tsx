@@ -1,7 +1,8 @@
 import { Fragment, useRef, useState, type ReactNode } from "react";
 import { ask, type ChatEvent } from "../api";
-import { Card } from "../components/ui";
+import { Card, Table } from "../components/ui";
 import { useLive } from "../live";
+import { parseBlocks, parseInline } from "../markdown";
 
 interface Turn {
   role: "user" | "assistant";
@@ -28,30 +29,25 @@ const STEP_TEXT: Record<string, string> = {
   list_allowed_values: "Looking up allowed values", get_metric_definition: "Reading a metric definition",
 };
 
-// Minimal, safe rendering of the model's Markdown: headings, bullets, paragraphs, **bold**.
+// Safe rendering of the model's Markdown (parsed in markdown.ts; no HTML from the model reaches the page).
 function inline(text: string): ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith("**") && part.endsWith("**") ? <strong key={i}>{part.slice(2, -2)}</strong> : <Fragment key={i}>{part}</Fragment>);
+  return parseInline(text).map((s, i) =>
+    s.kind === "bold" ? <strong key={i}>{s.text}</strong>
+      : s.kind === "code" ? <code key={i}>{s.text}</code>
+      : <Fragment key={i}>{s.text}</Fragment>);
 }
 
 function Markdown({ text }: { text: string }) {
-  const blocks: ReactNode[] = [];
-  let list: string[] = [];
-  const flush = () => {
-    if (list.length) blocks.push(<ul key={`l${blocks.length}`}>{list.map((li, i) => <li key={i}>{inline(li)}</li>)}</ul>);
-    list = [];
-  };
-  for (const line of text.split("\n")) {
-    const t = line.trim();
-    if (/^[-*]\s+/.test(t)) list.push(t.replace(/^[-*]\s+/, ""));
-    else {
-      flush();
-      if (/^#{1,6}\s/.test(t)) blocks.push(<h3 key={blocks.length}>{inline(t.replace(/^#+\s*/, ""))}</h3>);
-      else if (t) blocks.push(<p key={blocks.length}>{inline(t)}</p>);
-    }
-  }
-  flush();
-  return <>{blocks}</>;
+  return (
+    <>
+      {parseBlocks(text).map((b, i) =>
+        b.kind === "h" ? <h3 key={i}>{inline(b.text)}</h3>
+          : b.kind === "p" ? <p key={i}>{inline(b.text)}</p>
+          : b.kind === "ul" ? <ul key={i}>{b.items.map((li, j) => <li key={j}>{inline(li)}</li>)}</ul>
+          : b.kind === "ol" ? <ol key={i}>{b.items.map((li, j) => <li key={j}>{inline(li)}</li>)}</ol>
+          : <Table key={i} headers={b.headers} rows={b.rows.map((r) => r.map((c) => inline(c)))} />)}
+    </>
+  );
 }
 
 export default function Ask() {
