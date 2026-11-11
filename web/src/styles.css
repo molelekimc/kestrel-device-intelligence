@@ -263,3 +263,55 @@ i.good { color: var(--good); } i.warning { color: var(--warning); } i.critical {
 .plant-switch button { background: transparent; border: 0; color: var(--text-secondary); padding: 4px 12px; border-radius: 999px; font-size: 13px; }
 .plant-switch button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
 .hall-label { transform: translate(10px, -50%); padding: 2px 8px; border: 1px solid var(--border); border-radius: 6px; background: rgba(10, 16, 14, .7); }
+
+/* ======================================================================= TV mode (Phase 8c) */
+.tv { height: 100vh; display: grid; grid-template-rows: auto auto 1fr auto; padding: 1.6vh 2.4vw; gap: 1.2vh; overflow: hidden; }
+.tv-top { display: flex; align-items: center; gap: 2vw; }
+.tv-top .cr-brand strong { font-size: clamp(18px, 1.6vw, 34px); }
+.tv-scene-title { font-size: clamp(20px, 2vw, 40px); font-weight: 650; flex: 1; text-align: center; }
+.tv-controls { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.tv-exit { color: var(--text-secondary) !important; }
+.tv-progress { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tv-progress i { height: 4px; border-radius: 2px; background: var(--grid); position: relative; overflow: hidden; }
+.tv-progress i.done { background: var(--accent); opacity: .5; }
+.tv-progress i.on::after { content: ""; position: absolute; inset: 0; background: var(--accent); transform-origin: left;
+  animation: tv-fill linear forwards; }
+.tv-progress i.on.paused::after { animation-play-state: paused; }
+@keyframes tv-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.tv-stage { min-height: 0; display: grid; }
+.tv-scene { min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 1.6vh; }
+.tv-lead { font-size: clamp(20px, 2.1vw, 44px); font-weight: 600; margin: 0; max-width: 70vw; }
+.tv-floor .floor { min-height: 0; flex: 1; display: flex; align-items: center; justify-content: center; }
+.tv-floor .floor-stage { height: 100%; max-height: 68vh; width: auto; max-width: 100%; }
+.tv .area-tag { font-size: clamp(13px, 1.05vw, 22px); }
+.tv-label { font-size: clamp(16px, 1.4vw, 28px); color: var(--text-secondary); }
+.tv-hero { font-size: clamp(56px, 7vw, 150px); font-weight: 700; letter-spacing: -2px; line-height: 1; }
+.tv-sub, .tv-text, .tv-meta { font-size: clamp(16px, 1.4vw, 28px); color: var(--text-secondary); margin: 0; }
+.tv-big { font-size: clamp(32px, 3.6vw, 76px); font-weight: 650; line-height: 1.15; max-width: 80vw; }
+.tv-chart { max-width: 70vw; }
+.tv .chart .tick, .tv .chart .value { font-size: 14px; }
+.tv-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 1.2vh; font-size: clamp(16px, 1.5vw, 30px); }
+.tv-list .badge, .tv-areas .badge, .tv-meta .badge, .tv-ticker .badge { font-size: .8em; }
+.tv-areas { display: flex; gap: 10px 22px; flex-wrap: wrap; font-size: clamp(14px, 1.1vw, 22px); margin-top: 1vh; }
+.tv-ticker { display: flex; gap: 2vw; align-items: center; flex-wrap: wrap; font-size: clamp(14px, 1.1vw, 22px);
+  border-top: 1px solid var(--border); padding-top: 1vh; color: var(--text-secondary); }
+.tv-ticker .meta { margin-left: auto; }
+@media (max-width: 720px) {
+  .tv { height: auto; min-height: 100vh; overflow: visible; }
+  .tv-top { flex-wrap: wrap; } .tv-scene-title { text-align: left; }
+  .tv-floor .floor-stage { display: block; height: auto; width: 100%; }
+}
+.tv .ring { width: clamp(34px, 2.6vw, 56px); height: clamp(34px, 2.6vw, 56px); }
+.tv-ticker .meta { font-size: inherit; }
+
+.cr-hero { position: relative; display: grid; grid-template-columns: 1fr minmax(240px, 34%); align-items: center;
+  min-height: 170px; margin-bottom: 8px; }
+.cr-hero .cr-mission { font-size: clamp(17px, 1.6vw, 24px); margin: 4px 0 0; max-width: 760px; position: relative; z-index: 1; }
+.cr-eyebrow { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.cr-hero img { width: 100%; height: auto; max-height: 240px; object-fit: contain; object-position: right center;
+  -webkit-mask-image: radial-gradient(ellipse 70% 75% at 60% 50%, #000 55%, transparent 100%);
+          mask-image: radial-gradient(ellipse 70% 75% at 60% 50%, #000 55%, transparent 100%); margin: -20px 0 -30px; }
+@media (max-width: 720px) {
+  .cr-hero { grid-template-columns: 1fr; }
+  .cr-hero img { max-height: 160px; margin: 0; order: -1; }
+}

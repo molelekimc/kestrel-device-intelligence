@@ -56,7 +56,7 @@ function Laptop({ x, y, z, role }: { x: number; y: number; z: number; role: stri
   );
 }
 
-export function PlantFloor({ rows, footer }: { rows: Row[]; footer?: ReactNode }) {
+export function PlantFloor({ rows, footer, compact = false }: { rows: Row[]; footer?: ReactNode; compact?: boolean }) {
   const [focus, setFocus] = useState<string | null>(null);
   const [plant, setPlant] = useState<string>("ALL");
   const { halls, bounds } = useMemo(() => layoutFloor(rows, plant === "ALL" ? undefined : [plant]), [rows, plant]);
@@ -85,13 +85,13 @@ export function PlantFloor({ rows, footer }: { rows: Row[]; footer?: ReactNode }
   items.sort((p, q) => p.depth - q.depth);
 
   return (
-    <div className="floor">
-      <div className="plant-switch" role="group" aria-label="Show plant">
+    <div className={`floor ${compact ? "compact" : ""}`}>
+      {!compact && <div className="plant-switch" role="group" aria-label="Show plant">
         {PLANTS.map(([code, name]) => (
           <button key={code} className={plant === code ? "on" : ""} aria-pressed={plant === code}
             onClick={() => { setPlant(code); setFocus(null); }}>{name}</button>
         ))}
-      </div>
+      </div>}
       <div className="floor-stage" style={{ aspectRatio: `${W} / ${H}` }}>
         <svg viewBox={`${x0} ${y0} ${W} ${H}`} className="floor-svg" aria-hidden="true">{items.map((i) => i.el)}</svg>
         {halls.map((h) => (
@@ -112,7 +112,7 @@ export function PlantFloor({ rows, footer }: { rows: Row[]; footer?: ReactNode }
         })}
       </div>
 
-      <div className="floor-card" aria-live="polite">
+      {!compact && <><div className="floor-card" aria-live="polite">
         {focused ? (
           <>
             <BandBadge band={focused.row.band} /> <span>{areaSentence(focused.row)}</span>{" "}
@@ -140,6 +140,7 @@ export function PlantFloor({ rows, footer }: { rows: Row[]; footer?: ReactNode }
         rows={rows.map((r) => [r.plant_name, r.area, r.lines, r.stops, r.suppressed ? "hidden" : duration(r.it_minutes),
           r.suppressed ? "hidden" : duration(r.downtime_minutes), r.suppressed ? "hidden" : pct(r.it_downtime_share),
           r.band ? BAND[r.band as Band].short : "too few stops"])} />
+      </>}
       {footer}
     </div>
   );

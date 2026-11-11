@@ -322,6 +322,27 @@ scripts/demo.sh                                 # replay + refresh watcher + app
   - Approval stays human: run `automation.review approve` on the branch, then merge.
   - Requires *Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests"*.
 
+## Phase 8: Control room and TV mode
+
+The home page (`/`) is a **control room** for a plant or operations manager. It opens with what the problem is, then shows:
+- the week in one plain-English sentence;
+- an isometric plant floor: each production area carries a ring for the share of line-stop time caused by IT, banded running normally / watch / hurting, always with an icon and a label;
+- the illustrative cost, fixes done vs planned, incidents resolved vs opened, and how many PCs are healthy, crashing or silent.
+
+The analyst pages stay one click away (`/detail`, Why, Service desk, Data trust, Ask the fleet).
+
+**TV mode** (`/tv`) is for a wall screen. It cycles through the plant floor, what it cost, why it happened and whether the fix is working, about every 20 seconds:
+- arrow keys step between screens; space pauses;
+- it always shows the latest week and updates live;
+- a freshness ticker runs along the bottom.
+
+Rules the wording follows:
+- A week still in progress says "so far" and is never compared with a full week.
+- A likely cause is named only when an area is on watch or hurting, and only for a change that made things worse. It is always labelled a lead, not proof.
+- During a telemetry outage, devices show as silent, not healthy.
+
+The data comes from one more governed tool, `get_floor_status`. The laptop image in the banner (`web/public/hero-laptop.webp`) is **AI-generated**, with no real product or brand.
+
 ## How this was built
 
 This case study was built with Claude Code (Anthropic's AI coding assistant) under my direction, and every commit credits it as co-author. The split of work:

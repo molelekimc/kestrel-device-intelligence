@@ -3,6 +3,7 @@ import { FreshnessBar } from "./components/FreshnessBar";
 import { LiveProvider, useLive } from "./live";
 import Ask from "./pages/Ask";
 import ControlRoom from "./pages/ControlRoom";
+import TV from "./pages/TV";
 import DataTrust from "./pages/DataTrust";
 import Overview from "./pages/Overview";
 import Remediation from "./pages/Remediation";
@@ -29,7 +30,9 @@ function WeekPicker() {
 
 function Shell() {
   // The control room is a full-screen view with its own header; the detail pages share this shell.
-  if (useLocation().pathname === "/") return <ControlRoom />;
+  const path = useLocation().pathname;
+  if (path === "/") return <ControlRoom />;
+  if (path === "/tv") return <TV />;
   return (
     <div className="app">
       <header className="top">

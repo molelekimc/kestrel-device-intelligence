@@ -6,7 +6,7 @@ import { PlantFloor } from "../components/PlantFloor";
 import { Badge, Loading } from "../components/ui";
 import { niceDate, niceDateTime, num, pct, zar } from "../format";
 import { freshnessChips, LEVEL_TEXT, overall } from "../freshness";
-import { headline } from "../headline";
+import { headline, likelyCause } from "../headline";
 import { useLive, useTool } from "../live";
 import { weekWindow } from "./Overview";
 
@@ -28,6 +28,7 @@ function TopBar() {
         <NavLink to="/detail">Detail</NavLink>
         <NavLink to="/why">Why</NavLink>
         <NavLink to="/ask">Ask the fleet</NavLink>
+        <NavLink to="/tv">TV mode</NavLink>
       </nav>
       <div className="cr-live">
         <Badge kind={level} text={LEVEL_TEXT[level]} />
@@ -59,7 +60,7 @@ export default function ControlRoom() {
   // Data stops before the end of the week: say "so far" rather than compare with a full week.
   const dataTo = status?.data_to ?? null;
   const partialTo = f?.period?.end_date && dataTo && dataTo < f.period.end_date ? niceDate(dataTo).replace(/ \d{4}$/, "") : null;
-  const h = f ? headline({ floor: f.rows, previousFloor: prevFloor.data?.rows, topChange: changes.data?.rows?.find((c) => !c.suppressed),
+  const h = f ? headline({ floor: f.rows, previousFloor: prevFloor.data?.rows, topChange: likelyCause(changes.data?.rows),
     staleFeeds: stale, partialTo }) : null;
   const cost = impact.data?.cost_total_zar;
   const dev = f?.devices_total;
@@ -70,10 +71,17 @@ export default function ControlRoom() {
     <div className="cr">
       <div className="cr-page">
         <TopBar />
-        <p className="cr-mission">
-          When factory PCs and the <Term>MES</Term> client fail, production lines stop. This shows <strong>where</strong> it is
-          happening, <strong>what it costs</strong>, <strong>why</strong>, and <strong>whether the fix is working</strong>.
-        </p>
+        <section className="cr-hero">
+          <div>
+            <div className="cr-eyebrow">Windows fleet · 3 plants · 52 production lines</div>
+            <p className="cr-mission">
+              When factory PCs and the <Term>MES</Term> client fail, production lines stop. This shows <strong>where</strong> it
+              is happening, <strong>what it costs</strong>, <strong>why</strong>, and <strong>whether the fix is working</strong>.
+            </p>
+          </div>
+          {/* AI-generated illustration (no real product or brand); decorative. */}
+          <img src="/hero-laptop.webp" alt="" width={900} height={630} />
+        </section>
         {weeks.length > 0 && <WeekScrubber weeks={weeks} week={week} onPick={setWeek} events={events} />}
 
         <div className="cr-grid">

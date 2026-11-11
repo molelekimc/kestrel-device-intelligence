@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { areaSentence, duration, headline, plantMinutes } from "./headline";
+import { areaSentence, duration, headline, likelyCause, plantMinutes } from "./headline";
 import { layoutFloor, project, UNIT } from "./iso";
 
 const area = (plant: string, plant_name: string, area_code: string, areaName: string, it: number, all: number, band: string, lines = 6) => ({
@@ -36,7 +36,7 @@ describe("control room headline", () => {
   });
 
   it("names a cause only with moderate or strong evidence, and labels it", () => {
-    const strong = headline({ floor: W41, topChange: { change_id: "CHG1", description: "Deploy app 4.2", evidence: "strong" } });
+    const strong = headline({ floor: W41, topChange: { change_id: "CHG1", description: "Deploy app 4.2", evidence: "strong", top_metric: "app_crash_rate", direction: "increase" } });
     expect(strong.cause).toContain("not proof");
     expect(headline({ floor: W41, topChange: { change_id: "CHG1", description: "x", evidence: "weak" } }).cause).toBeUndefined();
   });
@@ -49,6 +49,16 @@ describe("control room headline", () => {
   it("offers no cause when every area is running normally", () => {
     const calm = W41.map((r) => ({ ...r, band: r.band && "normal" }));
     expect(headline({ floor: calm, topChange: { change_id: "C", description: "x", evidence: "strong" } }).cause).toBeUndefined();
+    expect(headline({ floor: calm }).worst).toBe("Every area is running normally. Most IT stop time: Axles at Gqeberha (10 hours).");
+  });
+
+  it("only blames a change that made things worse", () => {
+    const fix = { change_id: "HOT", description: "hotfix", evidence: "strong", top_metric: "app_crash_rate", direction: "decrease" };
+    const bad = { change_id: "BAD", description: "release", evidence: "moderate", top_metric: "app_crash_rate", direction: "increase" };
+    const outage = { change_id: "NET", description: "proxy", evidence: "strong", top_metric: "coverage", direction: "decrease" };
+    expect(likelyCause([fix, bad])?.change_id).toBe("BAD");
+    expect(likelyCause([outage])?.change_id).toBe("NET");
+    expect(headline({ floor: W41, topChange: fix }).cause).toBeUndefined();
   });
 
   it("warns when feeds are behind", () => {

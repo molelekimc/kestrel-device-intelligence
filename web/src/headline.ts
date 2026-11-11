@@ -32,6 +32,17 @@ export function plantMinutes(rows: Row[]): { plant: string; name: string; minute
   return [...by.values()].sort((a, b) => b.minutes - a.minutes);
 }
 
+/** Did this change make things worse? Coverage is bad when it falls; every other metric when it rises. */
+export function worsened(c: Row | null | undefined): boolean {
+  if (!c || !c.direction) return false;
+  return c.top_metric === "coverage" ? c.direction === "decrease" : c.direction === "increase";
+}
+
+/** The strongest logged change that made things worse (rows arrive strongest first). */
+export function likelyCause(changes: Row[] | undefined): Row | null {
+  return (changes ?? []).find((c) => !c.suppressed && (c.evidence === "strong" || c.evidence === "moderate") && worsened(c)) ?? null;
+}
+
 export interface Headline {
   lead: string;          // the week in one sentence
   worst?: string;        // where it hurt most
@@ -65,13 +76,15 @@ export function headline({ floor, previousFloor, topChange, staleFeeds = [], par
   const out: Headline = { lead };
   const worstArea = floor.filter(shown).sort((a, b) => b.it_minutes - a.it_minutes)[0];
   const hurting = floor.filter((r) => r.band === "hurting");
-  if (worstArea && total > 0) {
-    out.worst = `Hardest hit: ${worstArea.area} at ${worstArea.plant_name}, which lost ${duration(worstArea.it_minutes)}`;
-    out.worst += hurting.length > 1 ? `. ${hurting.length} of ${floor.length} areas are hurting.` : ".";
-  }
   // Only explain a problem when there is one: some area on watch or hurting.
   const troubled = floor.some((r) => r.band === "watch" || r.band === "hurting");
-  if (troubled && topChange && (topChange.evidence === "strong" || topChange.evidence === "moderate")) {
+  if (worstArea && total > 0 && troubled) {
+    out.worst = `Hardest hit: ${worstArea.area} at ${worstArea.plant_name}, which lost ${duration(worstArea.it_minutes)}`;
+    out.worst += hurting.length > 1 ? `. ${hurting.length} of ${floor.length} areas are hurting.` : ".";
+  } else if (worstArea && total > 0) {
+    out.worst = `Every area is running normally. Most IT stop time: ${worstArea.area} at ${worstArea.plant_name} (${duration(worstArea.it_minutes)}).`;
+  }
+  if (troubled && topChange && (topChange.evidence === "strong" || topChange.evidence === "moderate") && worsened(topChange)) {
     out.cause = `Likely cause: “${topChange.description}” (${topChange.change_id}), ${topChange.evidence} evidence. A lead to check, not proof.`;
   }
   if (staleFeeds.length) {
