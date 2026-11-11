@@ -8,3 +8,6 @@ logs/
 *.egg-info/
 *.duckdb.wal
 .claude/
+state/
+landing/
+demo-run/

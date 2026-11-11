@@ -1,0 +1,92 @@
+# Every Monday 06:00 SAST (04:00 UTC): rebuild the warehouse, build the week's executive
+# report, and - if an ANTHROPIC_API_KEY secret is configured - draft the analyst briefing
+# and open a pull request for human review. Nothing is published or acted on automatically:
+# a reviewer approves the draft (automation.review) and merges, or closes the PR.
+#
+# The case study's data is a fixed historical window, so "this week" defaults to the latest
+# week in the data; pass a week when running by hand.
+name: Weekly report and briefing
+
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "ISO week to report on, e.g. 2026-W41 (default: latest week in the data)"
+        required: false
+
+permissions:
+  contents: write          # push the review branch
+  pull-requests: write     # open the review pull request
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install
+        run: python -m pip install -e .
+
+      - name: Build the warehouse
+        run: python -m pipeline.run
+
+      - name: Choose the week
+        id: week
+        run: |
+          WEEK="${{ github.event.inputs.week }}"
+          if [ -z "$WEEK" ]; then
+            WEEK=$(python -c "import duckdb; from pipeline import config; print(duckdb.connect(str(config.DB_PATH), read_only=True).execute('SELECT max(iso_week) FROM gold_week').fetchone()[0])")
+          fi
+          echo "week=$WEEK" >> "$GITHUB_OUTPUT"
+          echo "Reporting on $WEEK"
+
+      - name: Data freshness and quality gate (logged, never blocks the report)
+        run: python -m automation.weekly_briefing --week "${{ steps.week.outputs.week }}" --dry-run
+
+      - name: Build the executive report
+        run: python -m reporting.build --week "${{ steps.week.outputs.week }}"
+
+      - name: Draft the briefing with Claude
+        if: env.HAS_KEY == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          KESTREL_MODEL: ${{ vars.KESTREL_MODEL }}
+        run: python -m automation.weekly_briefing --week "${{ steps.week.outputs.week }}"
+
+      - name: Open a pull request for review
+        if: env.HAS_KEY == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: briefing/${{ steps.week.outputs.week }}
+          add-paths: |
+            briefings/drafts/
+            reports/
+          commit-message: "Weekly briefing draft and report for ${{ steps.week.outputs.week }}"
+          title: "Weekly briefing ${{ steps.week.outputs.week }} for review"
+          labels: briefing
+          body: |
+            Automated draft for **${{ steps.week.outputs.week }}**, written by Claude using only the governed fleet tools, plus the week's executive report.
+
+            **Review before anything is published:**
+            1. Read the draft in `briefings/drafts/` and check its numbers against the evidence appendix at the bottom of the file.
+            2. Check the front matter for `contract_violations`.
+            3. To approve, check out this branch and run `python -m automation.review approve <draft> --reviewer "Your Name"` (or `edit` / `reject`), push, then merge.
+
+            Closing this pull request discards the draft. No remediation or other action is taken by this automation.
+
+      - name: Keep the report
+        uses: actions/upload-artifact@v4
+        with:
+          name: executive-report-${{ steps.week.outputs.week }}
+          path: reports/${{ steps.week.outputs.week }}.html
+          retention-days: 30

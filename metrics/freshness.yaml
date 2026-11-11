@@ -1,0 +1,61 @@
+# Freshness SLAs: how often each source is expected to land, and how late is too late.
+# Read by pipeline/freshness.py (gold_freshness) and surfaced by every tool and the app.
+#
+#   fresh   age <= expected + grace
+#   late    age <= 2 x expected + grace
+#   stale   older than that, or the latest weekday's volume collapsed (telemetry per plant)
+#
+# event_feed: true means the source is judged by its newest event when arrival time is
+# unknown (telemetry: every device sends continuously). Other sources are exports, judged
+# by when the file arrived.
+
+bands: {late_factor: 2}
+
+sources:
+  telemetry:
+    label: Reliability telemetry
+    files: "telemetry/*.jsonl.gz"
+    expected_hours: 24
+    grace_hours: 6
+    event_feed: true
+    latest_event_sql: "SELECT max(event_ts_sast) FROM silver_telemetry_event"
+    per_plant: true
+    volume_min_ratio: 0.5        # latest weekday's reporting devices vs a normal weekday
+  mes_stops:
+    label: MES line stops
+    files: "mes/line_downtime_events.csv"
+    expected_hours: 24
+    grace_hours: 6
+    # Judged by export arrival: a quiet Sunday has no stops, which is not missing data.
+    latest_event_sql: "SELECT max(start_at) FROM silver_downtime"
+  itsm:
+    label: Service desk incidents
+    files: "itsm/*.csv"
+    expected_hours: 24
+    grace_hours: 6
+    latest_event_sql: "SELECT max(opened_at) FROM silver_ticket"
+  changes:
+    label: Change requests
+    files: "change/*.csv"
+    expected_hours: 24
+    grace_hours: 6
+  intune:
+    label: Intune inventory
+    files: "intune/kestrel_intune_devices_*.csv"
+    expected_hours: 168
+    grace_hours: 24
+  groups:
+    label: Intune group membership
+    files: "intune/group_membership_*.csv"
+    expected_hours: 168
+    grace_hours: 24
+  tracker:
+    label: Rollout tracker
+    files: "plant_it/*.csv"
+    expected_hours: 168
+    grace_hours: 48
+  remediation:
+    label: Remediation register
+    files: "remediation/*.csv"
+    expected_hours: 168
+    grace_hours: 48

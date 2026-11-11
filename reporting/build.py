@@ -436,7 +436,7 @@ def render(d: dict, briefing_html: str | None) -> str:
   <p class="note">Each change is compared on the devices it targeted versus the devices it did not, before and after.
   This is <strong>evidence, not proof</strong>: "concentrated in" names the app version or bug check code carrying the
   shift, and other changes in the same window are listed so they can be ruled out.</p>
-  {table(['Change', 'Evidence', 'What moved', 'Concentrated in', 'Other changes in the window'], why_rows) if why_rows else '<p>No change this week or last shows moderate or strong evidence.</p>'}
+  {table(['Change', 'Evidence', 'What moved afterwards', 'Concentrated in', 'Other changes in the window'], why_rows) if why_rows else '<p>No change this week or last shows moderate or strong evidence.</p>'}
   {f'<details><summary>Considered, weak evidence ({len(weak)})</summary><ul>{weak_items}</ul></details>' if weak else ''}
   <h3>This week in order</h3>
   <ol class="timeline">{tl or '<li>No dated events.</li>'}</ol>

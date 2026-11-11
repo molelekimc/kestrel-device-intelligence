@@ -160,10 +160,23 @@ class FleetTools:
                "suppressed_groups": suppressed,
                "suppression_rule": f"groups with fewer than {self.min_devices} devices are suppressed",
                "data_quality": self._status(warnings),
+               "data_freshness": self._freshness_summary(),
                "warnings": warnings,
                "notes": notes or []}
         env.update(extra)
         return env
+
+    def _freshness_summary(self) -> dict:
+        """One line per feed behind its SLA, attached to every response (Phase 7)."""
+        try:
+            rows = self._q("""SELECT label, status, reason, age_hours, checked_at FROM gold_freshness
+                              WHERE status <> 'fresh' ORDER BY status DESC, label""")
+            checked = self._q("SELECT max(checked_at) AS t FROM gold_freshness")[0]["t"]
+        except duckdb.CatalogException:          # warehouse built before freshness existed
+            return {"status": "unknown"}
+        worst = max((r["status"] for r in rows), key=lambda x: ["late", "stale", "missing"].index(x), default="fresh")
+        return {"status": worst, "checked_as_of": str(checked),
+                "behind_sla": [f"{r['label']}: {r['status']} ({r['reason']}, {r['age_hours']} h old)" for r in rows]}
 
     # ------------------------------------------------------------------ tools
     @audited
@@ -655,3 +668,21 @@ class FleetTools:
             warnings=self._warnings(a, b, {"plant_code": p} if p else {}),
             notes=["Changes, major incidents, monitoring tickets, problem records, telemetry outages and remediation "
                    "actions in date order. Ticket text and people are never shown."])
+
+
+    # ================================================================== freshness (Phase 7)
+
+    @audited
+    def get_data_freshness(self) -> dict:
+        rows = self._q("""SELECT source, scope, label, as_of, latest_event_at, expected_hours, grace_hours,
+                                 age_hours, status, reason, checked_at FROM gold_freshness ORDER BY source, scope""")
+        rows = [{k: (str(v) if hasattr(v, "isoformat") else _r(v)) for k, v in r.items()} for r in rows]
+        a, b = self.v.weeks[0], self.v.weeks[-1]
+        return self._envelope(
+            period=self._period(a, b), rows=rows,
+            notes=["Freshness compares when each source last arrived (or, for telemetry, its newest event) with "
+                   "its expected cadence in metrics/freshness.yaml: fresh within cadence + grace, late within "
+                   "twice the cadence, stale beyond that.",
+                   "Telemetry is also checked per plant: if a plant's latest weekday carried under half its normal "
+                   "number of reporting devices, its feed is stale even though files keep arriving.",
+                   "During a live replay, 'now' is the simulated clock; otherwise it is the data snapshot time."])

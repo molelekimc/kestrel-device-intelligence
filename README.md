@@ -13,6 +13,7 @@ This case study builds:
 - **A weekly briefing automation** in which Claude drafts and a named human approves. Nothing is acted on automatically.
 - **An evaluation harness** that checks the pipeline and the assistant's answers against the planted storylines.
 - **A business-impact layer and executive report** that tie device health to production-line downtime, illustrative cost, service desk tickets, logged changes and remediations (Phase 6).
+- **A live reporting app** (FastAPI + React/TypeScript) with an "Ask the fleet" chat, data that arrives on a schedule, automatic refresh, freshness SLAs on every page, and GitHub Actions for CI and the weekly report and briefing (Phase 7).
 
 ## Architecture
 
@@ -54,6 +55,15 @@ flowchart LR
     F --> WB[weekly_briefing<br/>Claude tool loop] --> D[briefings/drafts] --> R{human review} -->|approve| A[briefings/approved]
     F --> E[evals]
     F --> RP[reporting<br/>weekly executive report] --> H[reports/WEEK.html]
+
+    subgraph live["Live operation (Phase 7)"]
+        SIM[replay simulator<br/>files land on a schedule] --> LZ[landing/]
+        LZ --> W[refresh watcher<br/>rebuild + atomic swap]
+        API[FastAPI<br/>/api/tools, events, ask] --> UI[React app<br/>freshness bar, chat]
+    end
+    W --> B
+    F --> API
+    GA[GitHub Actions<br/>CI · weekly report + briefing PR] -.-> B
 ```
 
 The pipeline, the MCP server, the briefing, the evals and the executive report all use the same metric definitions and the same governed tool code, so a number means the same thing everywhere.
@@ -266,6 +276,61 @@ Four synthetic business sources join the device data: service desk incidents, CA
 
 Because one author wrote both the business generator and this layer, its evaluation is a consistency check, not a blind test.
 
+## Phase 7: Live reporting app, AI chat and automated freshness
+
+```bash
+cd web && npm ci && npm run build && cd ..     # build the React app once (Node 22)
+scripts/demo.sh                                 # replay + refresh watcher + app at http://127.0.0.1:8000
+```
+
+`scripts/demo.sh` plays the historical files into `demo-run/landing/` on a simulated clock: one simulated day every 2 real minutes. The refresh watcher rebuilds the warehouse whenever new files land, and the app updates itself. On the morning of simulated **Tue 6 Oct** the freshness bar turns red: "Reliability telemetry – DBN: only 0% of a normal weekday's devices reported". That is two days before the storyline's analyst noticed the Durban outage.
+
+**Freshness and refresh automation** (`replay/`, `refresh/`, [`metrics/freshness.yaml`](metrics/freshness.yaml)):
+- **Arrival schedule:** telemetry lands each morning for the previous day. Service desk, change and MES exports land daily as as-of snapshots, with nothing from the future. Reference data lands weekly.
+- **Change detection:** the watcher polls a manifest of the landing files and waits until it has stopped changing, so a half-delivered batch is never loaded.
+- **Safe swap:** it builds into a temporary file and swaps it in atomically, so a failed run keeps the last good warehouse. Every run goes to `state/refresh_log.jsonl`.
+- **Freshness SLAs:** each source has an expected cadence and grace (fresh, late or stale). Telemetry is also checked per plant by volume, because an outage still delivers files, just empty ones. Every tool response carries a `data_freshness` summary, so Claude Desktop, the briefing and the chat all see stale feeds.
+
+**API** (`api/`, `kestrel-app`, docs at `/docs`):
+- every data route is a governed tool (`/api/tools/{name}`);
+- `/api/status`, `/api/refresh/history`, `POST /api/refresh` and `/api/events` (server-sent refresh notifications);
+- the warehouse is reopened automatically after a swap.
+
+**Ask the fleet** (`POST /api/ask`):
+- Claude answers through the same tools and instructions as Claude Desktop, streaming each tool call to the page;
+- the final answer is checked for device and person identifiers before it is sent;
+- input limits and bounded concurrency;
+- audited as `app-chat`;
+- without `ANTHROPIC_API_KEY` it says so, and every other page works.
+
+**Web app** (`web/`, Vite + React 18 + TypeScript):
+- **Pages:** Overview, Why, What's being done, Service desk, Data trust, Ask the fleet.
+- **Charts:** hand-written SVG in the same palette and rules as the report.
+- **Freshness bar** on every page, with a manual refresh button.
+- **Themes and layout:** light and dark, and phone width.
+
+**GitHub Actions** (`.github/workflows/`):
+- `ci.yml` on every push: rebuild the warehouse, run all tests (including the slow replay test), the evaluation evidence tier and the web checks; keep the scorecard and report as artifacts.
+- `weekly.yml` every Monday 06:00 SAST: rebuild, run the freshness and data quality gate, and build the executive report.
+  - With an `ANTHROPIC_API_KEY` repository secret, it also drafts the briefing and opens a **pull request for review**.
+  - Approval stays human: run `automation.review approve` on the branch, then merge.
+  - Requires *Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests"*.
+
+## How this was built
+
+This case study was built with Claude Code (Anthropic's AI coding assistant) under my direction, and every commit credits it as co-author. The split of work:
+
+- **My decisions.** I wrote the brief and the working agreement:
+  - build phase by phase, stopping for review after each;
+  - hold the answer key back until evaluation, so the cleaning was built from the data alone;
+  - never put real names or credentials anywhere.
+
+  I chose the stack and scope at each phase, including the business-impact layer and the live reporting app. I approved each plan, reviewed each phase's output before it was committed, and made the trade-offs: illustrative costs as ranges, evidence-not-proof for change correlation, human approval for every briefing.
+- **Claude's work.** It profiled the data, implemented the pipeline, tools, tests and app to those decisions, and reported the defects it found as it went. The evaluation-driven fixes are recorded in the scorecard.
+- **Why it's credible anyway.** Every number is reproducible: `python -m pipeline.run` rebuilds the warehouse from the raw files, 260+ tests and an evaluation harness check it, and the guardrails are tested rather than asserted.
+
+*(Draft - edit this section in your own words.)*
+
 ## Repository layout
 
 ```
@@ -278,6 +343,12 @@ briefings/           drafts/ and approved/
 evals/               evaluation harness (Phases 5-6)
 reporting/           weekly executive report builder (Phase 6)
 reports/             generated executive reports
+replay/              live replay simulator: files land on a simulated clock (Phase 7)
+refresh/             refresh watcher: rebuild on new files, atomic swap, run log (Phase 7)
+api/                 FastAPI reporting API and Ask-the-fleet chat (Phase 7)
+web/                 React + TypeScript reporting app (Phase 7)
+scripts/demo.sh      one-command live demo
+.github/workflows/   CI and the weekly report / briefing pull request
 tests/               pytest: cleaning rules, guardrails, tools, briefing flow, business layer, report
 answer_key/          ground truth, used only by evals/
 infra/               Azure environment scripts (optional cloud deployment)
