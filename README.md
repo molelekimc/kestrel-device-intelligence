@@ -439,9 +439,6 @@ This case study was built with Claude Code (Anthropic's AI coding assistant) und
   I chose the stack and scope at each phase, including the business-impact layer and the live reporting app. I approved each plan, reviewed each phase's output before it was committed, and made the trade-offs: illustrative costs as ranges, evidence-not-proof for change correlation, human approval for every briefing.
 - **Claude's work.** It profiled the data, implemented the pipeline, tools, tests and app to those decisions, and reported the defects it found as it went. The evaluation-driven fixes are recorded in the scorecard.
 - **Why it's credible anyway.** Every number is reproducible: `python -m pipeline.run` rebuilds the warehouse from the raw files, 260+ tests and an evaluation harness check it, and the guardrails are tested rather than asserted.
-
-*(Draft - edit this section in your own words.)*
-
 ## Repository layout
 
 ```
