@@ -30,7 +30,7 @@ The answers sit in systems that don't talk to each other: device management (Int
 
 > Ample Roots Digital (ARD) is a fictional consultancy, and Kestrel Assembly Group is a fictional client. All data in this repository is synthetic. No employer data, code or business rules are used.
 
-**Live demo:** _link coming once deployed on Render (see [Deploy to Render](#phase-9-deploy-to-render))._
+**Live demo:** [kestrel-control-room.onrender.com](https://kestrel-control-room.onrender.com/) (TV mode: [/tv](https://kestrel-control-room.onrender.com/tv)). The free tier sleeps when idle, so the first visit can take up to a minute to wake.
 
 **Run it:** see [Quick start](#quick-start), then [the live demo](#phase-7-live-reporting-app-ai-chat-and-automated-freshness) (`scripts/demo.sh`), and open `http://127.0.0.1:8000` (TV mode at `/tv`).
 
