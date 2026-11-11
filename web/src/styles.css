@@ -315,3 +315,18 @@ i.good { color: var(--good); } i.warning { color: var(--warning); } i.critical {
   .cr-hero { grid-template-columns: 1fr; }
   .cr-hero img { max-height: 160px; margin: 0; order: -1; }
 }
+.cr-hero img { margin-bottom: -6px; }
+.scrubber { position: relative; z-index: 1; }
+
+/* About panel (Phase 8d) */
+.about-btn { font-size: 13px; padding: 4px 12px; }
+dialog.about { max-width: 680px; width: calc(100% - 32px); border: 1px solid var(--border); border-radius: 18px; padding: 0;
+  background: var(--surface-1); color: var(--text-primary); }
+dialog.about::backdrop { background: rgba(4, 8, 6, .7); backdrop-filter: blur(3px); }
+.about-body { padding: 20px 24px 22px; font-size: 15px; line-height: 1.55; }
+.about-head { display: flex; align-items: center; gap: 10px; }
+.about-head h2 { flex: 1; font-size: 20px; }
+.about h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent); margin: 18px 0 6px; }
+.about p, .about ul { margin: 0; color: var(--text-secondary); } .about ul { padding-left: 18px; } .about li { margin: 4px 0; }
+.about strong, .about em { color: var(--text-primary); }
+.about-foot { font-size: 13px; margin-top: 18px !important; border-top: 1px solid var(--border); padding-top: 12px; }

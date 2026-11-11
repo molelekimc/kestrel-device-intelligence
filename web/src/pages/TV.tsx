@@ -16,9 +16,11 @@ import { weekWindow } from "./Overview";
 const TITLES = { floor: "The plant floor", cost: "What it cost", why: "Why it happened", fixes: "Is the fix working?" };
 
 export default function TV() {
-  const { status, connected } = useLive();
+  const { status, connected, week: chosen } = useLive();
   const weeks = status?.weeks ?? [];
-  const week = weeks.at(-1) ?? null;                     // TV always follows the latest week
+  // TV follows the latest week unless a link pins one (?week=2026-W41).
+  const linked = new URLSearchParams(window.location.search).has("week");
+  const week = (linked ? chosen : weeks.at(-1)) ?? null;
   const { prev } = weekWindow(weeks, week);
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);

@@ -2,18 +2,45 @@
 
 **Ample Roots Digital · Case study 01**
 
+## The problem in 30 seconds
+
+**A vehicle maker's production lines keep stopping, and nobody can say how much of it is IT's fault.**
+
+Kestrel builds vehicles and components (body, paint, trim, final assembly, axles, exhausts, seats, wiring harnesses) on 52 production lines in three South African plants. Every line runs on Windows PCs: station PCs and rugged laptops running the **MES** (the shop-floor software that drives each line). When one crashes or the MES client fails, the line stops. Leadership wants to know:
+
+- **Where** is it hurting? Which plants and production areas lose time to IT faults?
+- **What does it cost?** In lost production, people waiting and service desk time.
+- **Why?** Which change, release or outage set it off?
+- **Is the fix working?** Or was it only marked "done"?
+
+The answers sit in systems that don't talk to each other: device management (Intune), PC health telemetry, a rollout spreadsheet, service desk tickets, the change log and the MES stop log.
+
+![Kestrel control room for week 41: every production area is red after a faulty MES client release, 73 hours of production lost to IT faults](docs/img/control-room.webp)
+
+*The control room in week 41. A faulty MES client release (4.2.0) cost every production area time: 73 hours of stopped lines in a week, 6.2 times the week before. It cost an estimated R2.3M–R5.7M (illustrative). Durban looked calm only because its PCs had stopped reporting, and the page says so rather than calling Durban healthy.*
+
+**What this project does:**
+1. Cleans and joins the six sources into one set of trusted metrics, with every assumption written down.
+2. Shows the business view: a **control room** for plant managers and a **TV mode** for the wall, in plain language.
+3. Lets anyone **ask questions in plain English**. Claude answers only through governed tools: no device names, no people, small groups hidden, and caveats attached.
+4. Keeps itself current. Data lands on a schedule, the warehouse refreshes itself, and every screen shows how fresh each feed is.
+5. **Proves its own answers** with tests and an evaluation harness checked against an answer key.
+
+![TV mode: the plant floor in week 41 on a wall screen](docs/img/tv-mode.webp)
+
 > Ample Roots Digital (ARD) is a fictional consultancy, and Kestrel Assembly Group is a fictional client. All data in this repository is synthetic. No employer data, code or business rules are used.
 
-Kestrel runs about 18,000 Windows devices across three plants. Device data sits in three disconnected systems, so IT leadership can't say which plants or device groups are unstable, whether changes like the Windows 11 25H2 rollout are helping, or what device problems cost the production lines.
+**Run it:** see [Quick start](#quick-start), then [the live demo](#phase-7-live-reporting-app-ai-chat-and-automated-freshness) (`scripts/demo.sh`), and open `http://127.0.0.1:8000` (TV mode at `/tv`).
 
-This case study builds:
+### What's in the repository
 
-- **A local medallion pipeline** (DuckDB) that cleans and reconciles the three sources into governed metrics.
+- **A local medallion pipeline** (DuckDB) that cleans and reconciles the sources into governed metrics.
 - **A read-only MCP server** that lets an AI assistant answer fleet questions only through aggregate metrics, with data quality caveats attached to every answer.
 - **A weekly briefing automation** in which Claude drafts and a named human approves. Nothing is acted on automatically.
 - **An evaluation harness** that checks the pipeline and the assistant's answers against the planted storylines.
 - **A business-impact layer and executive report** that tie device health to production-line downtime, illustrative cost, service desk tickets, logged changes and remediations (Phase 6).
 - **A live reporting app** (FastAPI + React/TypeScript) with an "Ask the fleet" chat, data that arrives on a schedule, automatic refresh, freshness SLAs on every page, and GitHub Actions for CI and the weekly report and briefing (Phase 7).
+- **A control room and TV mode** for the business user (Phase 8).
 
 ## Architecture
 
@@ -342,6 +369,22 @@ Rules the wording follows:
 - During a telemetry outage, devices show as silent, not healthy.
 
 The data comes from one more governed tool, `get_floor_status`. The laptop image in the banner (`web/public/hero-laptop.webp`) is **AI-generated**, with no real product or brand.
+
+### Five-minute walkthrough (for an interview or a screen share)
+
+Start the live demo from 3 October so the Durban outage happens while you watch:
+
+```bash
+MINUTES_PER_DAY=1.5 scripts/demo.sh 2026-10-03
+```
+
+1. **Open the control room** (`http://127.0.0.1:8000`) and read the one-line problem aloud. Click **About this** if the audience is new to the domain.
+2. **A normal week.** Point at the plant floor: mostly green rings and a few hours lost to IT faults.
+3. **The data goes quiet.** On simulated **Tue 6 Oct** the freshness badge turns red: Durban's PCs stop reporting even though files keep arriving. Once the new week starts, the device panel counts Durban's PCs as silent and says "Not healthy, just quiet". Silence is never shown as health.
+4. **The bad week.** Click **W41** on the week strip, or open `/?week=2026-W41`. Every area is red, 73 hours lost, R2.3M–R5.7M (illustrative). The likely cause, MES client 4.2.0, is labelled a lead, not proof, with a link to the evidence.
+5. **Drill in.** Hover an area for its sentence. Then **Why** shows the change evidence, **What's being done** shows which fixes worked, and which were only marked done.
+6. **The wall screen.** Open `/tv` in a second window: it rotates on its own and updates when new data lands.
+7. **Ask the fleet.** Ask *"Telemetry shows almost no MES crashes at Durban in W41. Did Durban escape the KestrelMES problem?"* and watch Claude call the governed tools, find the outage, and answer from the MES stop log. Then ask for device hostnames and watch it refuse.
 
 ## How this was built
 

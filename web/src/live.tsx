@@ -15,8 +15,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [version, setVersion] = useState(0);
   const [connected, setConnected] = useState(false);
-  const [week, setWeekState] = useState<string | null>(null);
-  const [pinned, setPinned] = useState(false);   // user picked a week; don't follow the latest
+  // A link can open on a given week (?week=2026-W41); otherwise follow the latest week.
+  const linked = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("week") : null;
+  const [week, setWeekState] = useState<string | null>(linked);
+  const [pinned, setPinned] = useState(linked !== null);   // user picked a week; don't follow the latest
 
   useEffect(() => {
     let alive = true;
@@ -32,8 +34,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const latest = status?.weeks.at(-1) ?? null;
-    if (!pinned || !status?.weeks.includes(week ?? "")) setWeekState(latest);
+    if (!status) return;                       // keep a linked week until the week list is known
+    const latest = status.weeks.at(-1) ?? null;
+    if (!pinned || !status.weeks.includes(week ?? "")) setWeekState(latest);
   }, [status, pinned, week]);
 
   const setWeek = (w: string) => {

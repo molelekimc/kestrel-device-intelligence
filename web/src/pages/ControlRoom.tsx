@@ -1,6 +1,7 @@
 // The control room: the business view of the fleet for a plant/ops manager. Plain language first,
 // the plant floor in the middle, and every number one click away from its detail page.
 import { Link, NavLink } from "react-router-dom";
+import { About } from "../components/About";
 import { BrandMark, Gauge, Term, WeekScrubber } from "../components/controlroom";
 import { PlantFloor } from "../components/PlantFloor";
 import { Badge, Loading } from "../components/ui";
@@ -34,6 +35,7 @@ function TopBar() {
         <Badge kind={level} text={LEVEL_TEXT[level]} />
         <span className={`live-dot ${connected ? "on" : ""}`}>{connected ? "Live" : "Offline"}</span>
         <span className="meta">data as of {niceDateTime(status?.as_of)}{status?.replay ? " (simulated)" : ""}</span>
+        <About />
       </div>
     </header>
   );
