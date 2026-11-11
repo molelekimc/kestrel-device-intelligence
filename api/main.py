@@ -176,8 +176,10 @@ def status():
     fresh = t.get_data_freshness()
     weeks = t.v.weeks
     last = watcher.read_log(1)
+    # The last day the warehouse holds data for (mid-week during a replay), not the end of the last week.
+    data_to = t._q("SELECT max(day) AS d FROM gold_coverage_daily")[0]["d"] if weeks else None
     return {"version": provider.version(), "as_of": _clock() or str(config.AS_OF), "replay": _clock() is not None,
-            "weeks": weeks, "data_to": t.v.week_dates[weeks[-1]][1].isoformat() if weeks else None,
+            "weeks": weeks, "data_to": data_to.isoformat() if data_to else None,
             "freshness": fresh["data_freshness"], "ai_enabled": ai_enabled(),
             "last_refresh": last[-1] if last else None}
 
