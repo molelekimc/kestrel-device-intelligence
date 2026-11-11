@@ -72,3 +72,42 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  docker:
+    name: Container image (as deployed on Render)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t kestrel-control-room .
+
+      - name: Run it with the Render settings
+        run: |
+          docker run -d --name kestrel -p 8080:10000 \
+            -e PORT=10000 -e KESTREL_PUBLIC=1 -e KESTREL_DEFAULT_WEEK=2026-W41 \
+            kestrel-control-room
+          for i in $(seq 1 30); do curl -sf localhost:8080/api/health && break; sleep 2; done
+
+      - name: Smoke test
+        run: |
+          set -e
+          curl -sf localhost:8080/api/health | python3 -c "import json,sys; assert json.load(sys.stdin)['ok']"
+          curl -sf localhost:8080/api/status | python3 -c "
+          import json, sys
+          s = json.load(sys.stdin)
+          assert s['public'] and s['default_week'] == '2026-W41' and not s['ai_enabled'], s
+          print('weeks', s['weeks'][0], 'to', s['weeks'][-1])"
+          curl -sf "localhost:8080/api/tools/floor?week=2026-W41" | python3 -c "
+          import json, sys
+          r = json.load(sys.stdin)
+          assert len(r['rows']) == 9 and {a['band'] for a in r['rows']} == {'hurting'}, r['rows']"
+          curl -sf localhost:8080/ | grep -q '<div id="root">'
+          curl -sf localhost:8080/tv | grep -q '<div id="root">'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8080/api/refresh)" = 403
+          echo "container OK"
+
+      - name: Container log
+        if: always()
+        run: docker logs kestrel | tail -50

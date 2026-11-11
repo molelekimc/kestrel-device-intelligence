@@ -1,0 +1,26 @@
+# Render blueprint: the Kestrel control room as one Docker web service.
+# Render → New → Blueprint → pick this repository. Secrets marked sync: false are asked for in the
+# dashboard and never stored in git; leave them empty to keep Ask the fleet switched off.
+services:
+  - type: web
+    name: kestrel-control-room
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: KESTREL_HOST
+        value: 0.0.0.0
+      - key: KESTREL_PUBLIC              # read-only public snapshot: no manual refresh
+        value: "1"
+      - key: KESTREL_DEFAULT_WEEK        # first visit opens on the story week
+        value: 2026-W41
+      - key: KESTREL_CHAT_DAILY_LIMIT    # caps Ask the fleet questions per day (cost)
+        value: "30"
+      - key: ANTHROPIC_API_KEY           # optional: turns on Ask the fleet
+        sync: false
+      - key: KESTREL_CHAT_PASSCODE       # optional but recommended with the key: invited visitors only
+        sync: false

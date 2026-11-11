@@ -1,0 +1,32 @@
+# Only code, metric definitions and the synthetic raw files go into the image.
+.git
+.github
+.venv
+.claude
+**/__pycache__
+**/*.pyc
+*.egg-info
+.pytest_cache
+
+# Built or generated locally; the image builds its own
+*.duckdb
+*.duckdb.wal
+web/node_modules
+web/dist
+demo-run
+landing
+state
+logs
+reports
+briefings
+
+# Not needed to serve the app
+answer_key
+evals/results
+tests
+docs
+infra
+scripts
+generate_sources.py
+generate_business_sources.py
+*.md
